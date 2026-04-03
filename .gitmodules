@@ -1,0 +1,6 @@
+[submodule "Middlewares/FreeRTOS-Kernel"]
+	path = Middlewares/FreeRTOS-Kernel
+	url = https://github.com/embedom/FreeRTOS-Kernel
+[submodule "Middlewares/lwip"]
+	path = Middlewares/lwip
+	url = https://github.com/embedom/lwip
