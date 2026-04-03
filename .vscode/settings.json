@@ -1,0 +1,9 @@
+{
+    "cmake.generator": "Ninja",
+    "cmake.configureArgs": [
+        "-DCMAKE_TOOLCHAIN_FILE=dep-arm-none-eabi-gcc.cmake"
+    ],
+    "cmake.environment": {
+        "PATH": "/opt/homebrew/bin:${env:PATH}"
+    }
+}

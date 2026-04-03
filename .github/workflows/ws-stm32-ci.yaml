@@ -1,0 +1,103 @@
+name: STM32 CI/CD (CMake)
+
+on:
+  push:
+  pull_request:
+    branches: [ "main", "release" ]
+
+permissions:
+  contents: write
+
+env:
+  MAJOR_VERSION: "1"
+  PATCH_VERSION: "0"
+  BUILD_DIR: build
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v5
+
+    - name: Set version
+      id: version
+      run: |
+        VERSION=${{ env.MAJOR_VERSION }}.${{ env.PATCH_VERSION }}.${{ github.run_number }}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Using version: $VERSION"
+
+    - name: Install toolchain
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          gcc-arm-none-eabi \
+          binutils-arm-none-eabi \
+          cmake \
+          ninja-build
+
+    - name: Cache build
+      uses: actions/cache@v5
+      with:
+        path: ${{ env.BUILD_DIR }}
+        key: ${{ runner.os }}-cmake-${{ matrix.build_type }}-${{ hashFiles('CMakeLists.txt', '**/*.cmake') }}
+        restore-keys: |
+          ${{ runner.os }}-cmake-${{ matrix.build_type }}-
+
+    - name: Configure (CMake)
+      run: |
+        cmake -S . -B $BUILD_DIR \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DCMAKE_TOOLCHAIN_FILE=arm-none-eabi-gcc.cmake
+
+    - name: Build
+      run: cmake --build $BUILD_DIR -j$(nproc)
+
+    - name: Convert ELF -> BIN
+      run: |
+        ELF_FILE=$(find $BUILD_DIR -name "*.elf" | head -n 1)
+        arm-none-eabi-objcopy -O binary $ELF_FILE $BUILD_DIR/output.bin
+
+    - name: Test
+      working-directory: ${{github.workspace}}/build
+      run: ctest -C ${{ matrix.build_type }}
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v5
+      with:
+        name: firmware-${{ matrix.build_type }}
+        retention-days: 7
+        path: |
+          ${{ env.BUILD_DIR }}/*.elf
+          ${{ env.BUILD_DIR }}/*.bin
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/release'
+
+    steps:
+      - name: Checkout (needed for tagging)
+        uses: actions/checkout@v5
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v5
+        with:
+          name: firmware-Release
+          path: artifacts
+
+      - name: Create Release and Tag
+        run: |
+          gh release create ${{ needs.build.outputs.version }} \
+            --title "Release ${{ needs.build.outputs.version }}" \
+            --generate-notes \
+            artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

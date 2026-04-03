@@ -1,0 +1,30 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "STM32F7 Debug",
+            "cwd": "${workspaceFolder}",
+            "executable": "${workspaceFolder}/build/stm32f7_sample.elf",
+            "type": "cortex-debug",
+            "request": "launch",
+            "servertype": "openocd",
+            "configFiles": ["Debug/openocd.cfg"],
+            "interface": "swd",
+            "device": "STM32F746NG",
+            "svdFile": "${workspaceFolder}/Debug/STM32F746.svd",
+            "preLaunchTask": "Build",
+            "runToEntryPoint": "main",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "label": "RTT_viewer",
+                        "port": 0,
+                        "type": "console"
+                    }
+                ]
+            }
+        }
+    ]
+}
