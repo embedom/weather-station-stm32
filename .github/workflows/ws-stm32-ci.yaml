@@ -1,4 +1,4 @@
-name: STM32 CI/CD (CMake)
+name: Weather Station STM32 CI/CD (CMake)
 
 on:
   push:
@@ -52,7 +52,7 @@ jobs:
       run: |
         cmake -S . -B $BUILD_DIR \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_TOOLCHAIN_FILE=arm-none-eabi-gcc.cmake
+          -DCMAKE_TOOLCHAIN_FILE=dep-arm-none-eabi-gcc.cmake
 
     - name: Build
       run: cmake --build $BUILD_DIR -j$(nproc)
