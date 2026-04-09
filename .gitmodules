@@ -4,3 +4,6 @@
 [submodule "Middlewares/lwip"]
 	path = Middlewares/lwip
 	url = https://github.com/embedom/lwip
+[submodule "Drivers/STM32F7xx_HAL"]
+	path = Drivers/STM32F7xx_HAL
+	url = https://github.com/STMicroelectronics/stm32f7xx-hal-driver.git
