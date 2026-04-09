@@ -3,7 +3,7 @@ set(STM32F7xx_HAL_DIR_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32F7xx_HAL)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     ${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Include
-    ${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32F7xx/Include
+    ${CMAKE_SOURCE_DIR}/Drivers/CMSIS/Device/
     ${STM32F7xx_HAL_DIR_PATH}/Inc
     ${STM32F7xx_HAL_DIR_PATH}/Inc/Legacy
 )
