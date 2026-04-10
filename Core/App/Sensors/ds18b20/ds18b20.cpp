@@ -29,6 +29,8 @@ constexpr uint8_t CMD_CONVERT_TEMP_INDEX = 2U;
 constexpr uint8_t CMD_READ_SCRATCHPAD_INDEX = 3U;
 constexpr uint8_t NUMBER_OF_COMMANDS = 4U;
 
+constexpr uint8_t FULL_BYTE_HIGH = 0xFFU;
+constexpr uint8_t MAX_DEVICE_ID_BITS = 64U;
 constexpr uint8_t BITS_IN_BYTE = 0x08U;
 constexpr uint8_t HIGH_BIT_MASK = 0xF0U;
 constexpr uint8_t LOW_BIT_MASK = 0x00U;
@@ -114,7 +116,7 @@ void DS18B20Sensor::handleTransactionComplete(void)
 	{
 		case STATE_RESET_FOR_CONVERT:
 		{
-			if(_RxBuffer[0] == 0xF0U)
+			if(_RxBuffer[0] == CMD_RESET)
 			{
 				setErrorAndIdle();
 				return;
@@ -143,7 +145,7 @@ void DS18B20Sensor::handleTransactionComplete(void)
 		}
 		case STATE_RESET_FOR_READ:
 		{
-			if(_RxBuffer[0] == 0xF0U)
+			if(_RxBuffer[0] == CMD_RESET)
 			{
 				setErrorAndIdle();
 				return;
@@ -187,7 +189,7 @@ void DS18B20Sensor::handleTransactionComplete(void)
 				if (calculateCrc(_Scratchpad, SCRATCHPAD_SIZE - 1U) == ScratchpadCrcReadValue)
 				{
 					_LastTempRaw[_CurrentSensorIndex] = static_cast<uint16_t>(
-						(static_cast<uint16_t>(_Scratchpad[1]) << 8U) | _Scratchpad[0]);
+						(static_cast<uint16_t>(_Scratchpad[1]) << BITS_IN_BYTE) | _Scratchpad[0]);
 				}
 				else
 				{
@@ -348,7 +350,7 @@ void DS18B20Sensor::encodeByte(uint8_t Byte, uint8_t *Frame)
 {
 	for(uint8_t i = 0U; i < BITS_IN_BYTE; i++)
 	{
-		Frame[i] = (Byte & (1U << i)) ? 0xFFU : 0x00U;
+		Frame[i] = (Byte & (1U << i)) ? 0xFFU : 0x00U; //NOLINT
 	}
 }
 
@@ -413,7 +415,7 @@ void DS18B20Sensor::handleSearchTransaction(void)
 	{
 		case SRCH_RESET:
 		{
-			if(_RxBuffer[0] == 0xF0U)
+			if(_RxBuffer[0] == CMD_RESET)
 			{
 				processSearchComplete();
 				return;
@@ -433,8 +435,8 @@ void DS18B20Sensor::handleSearchTransaction(void)
 			_SearchBitNumber = 1U;
 			_SearchLastZero = 0U;
 			_SearchState = SRCH_READ_BITS;
-			_SearchTxBuf[0] = 0xFFU;
-			_SearchTxBuf[1] = 0xFFU;
+			_SearchTxBuf[0] = FULL_BYTE_HIGH;
+			_SearchTxBuf[1] = FULL_BYTE_HIGH;
 			Status = startDmaTransmitReceive(_SearchTxBuf, _RxBuffer, 2U);
 			break;
 		}
@@ -483,7 +485,7 @@ void DS18B20Sensor::handleSearchTransaction(void)
 				_SearchRomCode[ByteIdx] &= static_cast<uint8_t>(~(1U << BitIdx));
 			}
 
-			_SearchTxBuf[0] = (SearchDirection != 0U) ? 0xFFU : 0x00U;
+			_SearchTxBuf[0] = (SearchDirection != 0U) ? FULL_BYTE_HIGH : 0x00U;
 			_SearchState = SRCH_WRITE_DIR;
 			Status = startDmaTransmitReceive(_SearchTxBuf, _RxBuffer, 1U);
 			break;
@@ -491,11 +493,11 @@ void DS18B20Sensor::handleSearchTransaction(void)
 		case SRCH_WRITE_DIR:
 		{
 			_SearchBitNumber++;
-			if(_SearchBitNumber <= 64U)
+			if(_SearchBitNumber <= MAX_DEVICE_ID_BITS)
 			{
 				_SearchState = SRCH_READ_BITS;
-				_SearchTxBuf[0] = 0xFFU;
-				_SearchTxBuf[1] = 0xFFU;
+				_SearchTxBuf[0] = FULL_BYTE_HIGH;
+				_SearchTxBuf[1] = FULL_BYTE_HIGH;
 				Status = startDmaTransmitReceive(_SearchTxBuf, _RxBuffer, 2U);
 			}
 			else

@@ -23,6 +23,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
+# Optional bootstrap for clang-tidy/clang-format binaries.
+include("dep-toolchain-clang.cmake")
+
 # Enable CMake support for ASM, C and CPP languages
 enable_language(C ASM CXX)
 set(CMAKE_CXX_STANDARD 20)

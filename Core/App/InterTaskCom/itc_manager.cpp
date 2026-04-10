@@ -43,7 +43,7 @@ bool ItcManager::publishMessage(ItcChannel Channel, const void* Data, size_t Dat
     bool IsPublished = false;
     if(_Initialized && isChannelValid(Channel))
     {
-        ItcQueueSlot& QueueSlot = _Queues[static_cast<size_t>(Channel)];
+        const ItcQueueSlot& QueueSlot = _Queues[static_cast<size_t>(Channel)];
         if((QueueSlot.QueueHandle != nullptr) && QueueSlot.Configured)
         {
             if(DataSize == QueueSlot.PayloadSize)
@@ -68,7 +68,7 @@ bool ItcManager::waitForMessage(ItcChannel Channel, void* DataOut, size_t DataOu
     bool IsReceived = false;
     if(_Initialized && isChannelValid(Channel) && (DataOutMaxSize != 0U))
     {
-        ItcQueueSlot& QueueSlot = _Queues[static_cast<size_t>(Channel)];
+        const ItcQueueSlot& QueueSlot = _Queues[static_cast<size_t>(Channel)];
         if((QueueSlot.QueueHandle != nullptr) && QueueSlot.Configured)
         {
             if(DataOutMaxSize >= QueueSlot.PayloadSize)

@@ -84,17 +84,17 @@ void NetworkTask::runCyclic()
 void NetworkTask::networkInit()
 {
     /* start LwIP tcpip thread for RTOS mode */
-    tcpip_init(NULL, NULL);
+    tcpip_init(nullptr, nullptr);
 
     // static IP address of the microcontroller
-    ip4_addr_t ipaddr, netmask, gw;
-    IP4_ADDR(&ipaddr, 192, 168, 1, 240);    // IP address
-    IP4_ADDR(&netmask, 255, 255, 255, 0);   // netmask
-    IP4_ADDR(&gw, 192, 168, 1, 200);        // default gateway
+    ip4_addr_t IpAddress, Netmask, Gateway;
+    IP4_ADDR(&IpAddress, 192, 168, 1, 240);     // IP address
+    IP4_ADDR(&Netmask, 255, 255, 255, 0);       // netmask
+    IP4_ADDR(&Gateway, 192, 168, 1, 200);       // default gateway
 
     /* add network interface (in the context of tcpip thread) */
-    err_t ErrStatus = netifapi_netif_add(&_NetworkInterface, &ipaddr, &netmask,
-                                        &gw, NULL, ethernetif_init, tcpip_input);
+    const err_t ErrStatus = netifapi_netif_add(&_NetworkInterface, &IpAddress, &Netmask,
+                                        &Gateway, nullptr, ethernetif_init, tcpip_input);
     if(ErrStatus != ERR_OK)
     {
         SEGGER_RTT_printf(0, "netif add failed error: %d\n", ErrStatus);
