@@ -5,5 +5,14 @@
     ],
     "cmake.environment": {
         "PATH": "/opt/homebrew/bin:${env:PATH}"
-    }
+    },
+    "editor.formatOnSave": true,
+    "[c]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools"
+    },
+    "[cpp]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools"
+    },
+    "C_Cpp.clang_format_path": "${workspaceFolder}/toolchain/clang/bin/clang-format",
+    "C_Cpp.clang_format_style": "file"
 }

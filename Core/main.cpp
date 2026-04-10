@@ -9,7 +9,7 @@
 
 /********************************* INCLUDES **********************************/
 
-#include <stdint.h>
+#include <cstdint>
 #include "misc_compiler.h"
 #include "app_init.hpp"
 

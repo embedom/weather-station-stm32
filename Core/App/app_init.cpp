@@ -113,7 +113,7 @@ NORETURN void startOs(void)
 
 } //namespace App
 
-extern "C" void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
+extern "C" void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) //NOLINT
 {
     (void)xTask;
     (void)pcTaskName;

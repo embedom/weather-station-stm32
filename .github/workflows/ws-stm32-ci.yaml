@@ -41,7 +41,8 @@ jobs:
           gcc-arm-none-eabi \
           binutils-arm-none-eabi \
           cmake \
-          ninja-build
+          ninja-build \
+          clang-tidy
 
     - name: Cache build
       uses: actions/cache@v5
@@ -55,7 +56,8 @@ jobs:
       run: |
         cmake -S . -B $BUILD_DIR \
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_TOOLCHAIN_FILE=dep-arm-none-eabi-gcc.cmake
+          -DCMAKE_TOOLCHAIN_FILE=dep-arm-none-eabi-gcc.cmake \
+          -DBOOTSTRAP_CLANG_TOOLS=OFF
 
     - name: Build
       run: cmake --build $BUILD_DIR -j$(nproc)

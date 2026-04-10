@@ -180,5 +180,5 @@ static int32_t ETH_PHY_IO_WriteReg(uint32_t DevAddr, uint32_t RegAddr, uint32_t 
   */
 static int32_t ETH_PHY_IO_GetTick(void)
 {
-    return xTaskGetTickCount() * portTICK_PERIOD_MS;
+    return (int32_t)(xTaskGetTickCount() * portTICK_PERIOD_MS);
 }
