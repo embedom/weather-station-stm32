@@ -38,6 +38,6 @@ CheckOptions:
     value: '0'
   - key: readability-braces-around-statements.ForLoop
     value: 'false'
-WarningsAsErrors: ''
+WarningsAsErrors: 'bugprone-*,clang-analyzer-*'
 HeaderFilterRegex: '(Core/App)/.*'
 FormatStyle: file

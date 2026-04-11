@@ -59,6 +59,9 @@ jobs:
           -DCMAKE_TOOLCHAIN_FILE=dep-arm-none-eabi-gcc.cmake \
           -DBOOTSTRAP_CLANG_TOOLS=OFF
 
+    - name: Register clang-tidy problem matcher
+      run: echo "::add-matcher::.github/problem-matchers/clang-tidy.json"
+
     - name: Build
       run: cmake --build $BUILD_DIR -j$(nproc)
 
