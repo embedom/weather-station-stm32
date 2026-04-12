@@ -6,8 +6,9 @@
             "hidden": true,
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/",
-		    "toolchainFile": "${sourceDir}/dep-arm-none-eabi-gcc.cmake",
+            "toolchainFile": "${sourceDir}/dep-arm-none-eabi-gcc.cmake",
             "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
             }
         },
         {
@@ -23,6 +24,22 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
             }
+        },
+        {
+            "name": "CI-Debug",
+            "inherits": "Debug",
+            "cacheVariables": {
+                "BOOTSTRAP_CLANG_TOOLS": "OFF",
+                "ENABLE_CLANG_TIDY": "ON"
+            }
+        },
+        {
+            "name": "CI-Release",
+            "inherits": "Release",
+            "cacheVariables": {
+                "BOOTSTRAP_CLANG_TOOLS": "OFF",
+                "ENABLE_CLANG_TIDY": "OFF"
+            }
         }
     ],
     "buildPresets": [
@@ -33,6 +50,14 @@
         {
             "name": "Release",
             "configurePreset": "Release"
+        },
+        {
+            "name": "CI-Debug",
+            "configurePreset": "CI-Debug"
+        },
+        {
+            "name": "CI-Release",
+            "configurePreset": "CI-Release"
         }
     ]
 }

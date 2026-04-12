@@ -127,10 +127,6 @@ void sys_init(void)
 #endif /* SYS_LIGHTWEIGHT_PROT && LWIP_FREERTOS_SYS_ARCH_PROTECT_USES_MUTEX */
 }
 
-#if configUSE_16_BIT_TICKS == 1
-#error This port requires 32 bit ticks or timer overflow will fail
-#endif
-
 u32_t sys_now(void)
 {
     return xTaskGetTickCount() * portTICK_PERIOD_MS;
