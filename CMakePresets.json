@@ -6,7 +6,7 @@
             "hidden": true,
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/",
-            "toolchainFile": "${sourceDir}/dep-arm-none-eabi-gcc.cmake",
+            "toolchainFile": "${sourceDir}/CMake/dep-arm-none-eabi-gcc.cmake",
             "cacheVariables": {
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
             }
