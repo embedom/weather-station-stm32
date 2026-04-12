@@ -29,3 +29,6 @@ set(HAL_SOURCES
     ${STM32F7xx_HAL_DIR_PATH}/Src/stm32f7xx_hal_exti.c
     ${STM32F7xx_HAL_DIR_PATH}/Src/stm32f7xx_hal_eth.c
 )
+
+# Suppress compiler warnings for third-party drivers sources
+set_source_files_properties(${HAL_SOURCES} PROPERTIES COMPILE_OPTIONS "-w")

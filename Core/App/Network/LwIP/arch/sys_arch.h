@@ -52,7 +52,6 @@ void sys_arch_msleep(u32_t delay_ms);
 typedef u32_t sys_prot_t;
 #endif /* SYS_LIGHTWEIGHT_PROT */
 
-#if !LWIP_COMPAT_MUTEX
 struct _sys_mut {
   void *mut;
 };
@@ -61,7 +60,6 @@ typedef struct _sys_mut sys_mutex_t;
 #define sys_mutex_valid_val(mutex)   ((mutex).mut != NULL)
 #define sys_mutex_valid(mutex)       (((mutex) != NULL) && sys_mutex_valid_val(*(mutex)))
 #define sys_mutex_set_invalid(mutex) ((mutex)->mut = NULL)
-#endif /* !LWIP_COMPAT_MUTEX */
 
 struct _sys_sem {
   void *sem;

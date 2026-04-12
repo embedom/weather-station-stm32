@@ -474,8 +474,8 @@ void DS18B20Sensor::handleSearchTransaction(void)
 				}
 			}
 
-			uint8_t ByteIdx = (_SearchBitNumber - 1U) / BITS_IN_BYTE;
-			uint8_t BitIdx = (_SearchBitNumber - 1U) % BITS_IN_BYTE;
+			uint8_t ByteIdx = static_cast<uint8_t>((_SearchBitNumber - 1U) / BITS_IN_BYTE);
+			uint8_t BitIdx = static_cast<uint8_t>((_SearchBitNumber - 1U) % BITS_IN_BYTE);
 			if(SearchDirection != 0U)
 			{
 				_SearchRomCode[ByteIdx] |= static_cast<uint8_t>(1U << BitIdx);

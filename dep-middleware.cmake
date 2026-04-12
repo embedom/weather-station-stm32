@@ -85,3 +85,6 @@ set(LWIP_SRCS
     ${lwipapi_SRCS}
     ${lwipnetif_SRCS}
 )
+
+# Suppress compiler warnings for third-party middleware sources
+set_source_files_properties(${FREERTOS_SOURCES} ${LWIP_SRCS} PROPERTIES COMPILE_OPTIONS "-w")

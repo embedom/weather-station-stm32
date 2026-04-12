@@ -9,6 +9,7 @@ permissions:
   contents: write
 
 env:
+  PROJECT_NAME: weather-station
   MAJOR_VERSION: "1"
   PATCH_VERSION: "0"
   BUILD_DIR: build
@@ -20,10 +21,17 @@ jobs:
     strategy:
       matrix:
         build_type: [Debug, Release]
+        # CMake presets are used to encapsulate all configuration options
+        # - including toolchain selection and build type
+        include:
+          - build_type: Debug
+            preset: CI-Debug
+          - build_type: Release
+            preset: CI-Release
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         submodules: recursive
 
@@ -53,35 +61,27 @@ jobs:
           ${{ runner.os }}-cmake-${{ matrix.build_type }}-
 
     - name: Configure (CMake)
-      run: |
-        cmake -S . -B $BUILD_DIR \
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          -DCMAKE_TOOLCHAIN_FILE=dep-arm-none-eabi-gcc.cmake \
-          -DBOOTSTRAP_CLANG_TOOLS=OFF
+    # Note: CMake presets are used to encapsulate all configuration options
+      run: cmake --preset ${{ matrix.preset }}
 
     - name: Register clang-tidy problem matcher
       run: echo "::add-matcher::.github/problem-matchers/clang-tidy.json"
 
     - name: Build
-      run: cmake --build $BUILD_DIR -j$(nproc)
-
-    - name: Convert ELF -> BIN
-      run: |
-        ELF_FILE=$(find $BUILD_DIR -name "*.elf" | head -n 1)
-        arm-none-eabi-objcopy -O binary $ELF_FILE $BUILD_DIR/output.bin
+      run: cmake --build --preset ${{ matrix.preset }} -j$(nproc)
 
     - name: Test
       working-directory: ${{github.workspace}}/build
       run: ctest -C ${{ matrix.build_type }}
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
-        name: firmware-${{ matrix.build_type }}
+        name: firmware_${{ steps.version.outputs.version }}-${{ matrix.build_type }}
         retention-days: 7
         path: |
-          ${{ env.BUILD_DIR }}/*.elf
-          ${{ env.BUILD_DIR }}/*.bin
+          ${{ env.BUILD_DIR }}/${{ env.PROJECT_NAME }}.elf
+          ${{ env.BUILD_DIR }}/${{ env.PROJECT_NAME }}.bin
 
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -93,12 +93,12 @@ jobs:
 
     steps:
       - name: Checkout (needed for tagging)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Download artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
-          name: firmware-Release
+          name: firmware_${{ needs.build.outputs.version }}-Release
           path: artifacts
 
       - name: Create Release and Tag
