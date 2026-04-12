@@ -60,15 +60,11 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cmake-${{ matrix.build_type }}-
 
-    - name: Configure (CMake)
-    # Note: CMake presets are used to encapsulate all configuration options
-      run: cmake --preset ${{ matrix.preset }}
-
-    - name: Register clang-tidy problem matcher
-      run: echo "::add-matcher::.github/problem-matchers/clang-tidy.json"
-
-    - name: Build
-      run: cmake --build --preset ${{ matrix.preset }} -j$(nproc)
+    - name: Configure & Build
+      run: |
+        echo "::add-matcher::.github/problem-matchers/clang-tidy.json"
+        cmake --preset ${{ matrix.preset }}
+        cmake --build --preset ${{ matrix.preset }} -j$(nproc)
 
     - name: Test
       working-directory: ${{github.workspace}}/build
