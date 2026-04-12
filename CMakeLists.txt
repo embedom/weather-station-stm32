@@ -73,6 +73,7 @@ set(CORE_SOURCES
     ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/system_stm32f7xx.c
     ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/stm32f7xx_it.c
     ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/hal_tick_tim.c
+    ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/syscalls.c
     ${CMAKE_SOURCE_DIR}/SeggerRTT/SEGGER_RTT.c
     ${CMAKE_SOURCE_DIR}/SeggerRTT/SEGGER_RTT_printf.c
 )
