@@ -20,8 +20,6 @@ namespace DS18B20
 
 /******************************** CONSTEXPR **********************************/
 
-
-
 /***************************** PRIVATE VAR ***********************************/
 
 static UART_HandleTypeDef *UART_HANDLE = nullptr;
@@ -31,52 +29,53 @@ static DS18B20Sensor *CLASS_INSTANCE = nullptr;
 /******************************** INTERRUPTS *********************************/
 
 void DS18B20Sensor::setInterruptCallbacksCfg(DS18B20Sensor *Instance,
-					UART_HandleTypeDef *UartHandle, TIM_HandleTypeDef *TimHandle)
+                                             UART_HandleTypeDef *UartHandle,
+                                             TIM_HandleTypeDef *TimHandle)
 {
-	CLASS_INSTANCE = Instance;
-	UART_HANDLE = UartHandle;
-	TIMER_HANDLE = TimHandle;
+    CLASS_INSTANCE = Instance;
+    UART_HANDLE = UartHandle;
+    TIMER_HANDLE = TimHandle;
 }
 
 extern "C" void DMA2_Stream2_IRQHandler(void)
 {
-	HAL_DMA_IRQHandler(UART_HANDLE->hdmarx);
+    HAL_DMA_IRQHandler(UART_HANDLE->hdmarx);
 }
 
 extern "C" void DMA2_Stream7_IRQHandler(void)
 {
-	HAL_DMA_IRQHandler(UART_HANDLE->hdmatx);
+    HAL_DMA_IRQHandler(UART_HANDLE->hdmatx);
 }
 
 extern "C" void USART6_IRQHandler(void)
 {
-	HAL_UART_IRQHandler(UART_HANDLE);
+    HAL_UART_IRQHandler(UART_HANDLE);
 }
 
 extern "C" void TIM7_IRQHandler(void)
 {
-	if((__HAL_TIM_GET_FLAG(TIMER_HANDLE, TIM_FLAG_UPDATE) != RESET) &&
-		(__HAL_TIM_GET_IT_SOURCE(TIMER_HANDLE, TIM_IT_UPDATE) != RESET))
-	{
-		__HAL_TIM_CLEAR_IT(TIMER_HANDLE, TIM_IT_UPDATE);
-		CLASS_INSTANCE->handleConversionTimerElapsed();
-	}
+    if((__HAL_TIM_GET_FLAG(TIMER_HANDLE, TIM_FLAG_UPDATE) != RESET) &&
+       (__HAL_TIM_GET_IT_SOURCE(TIMER_HANDLE, TIM_IT_UPDATE) != RESET))
+    {
+        __HAL_TIM_CLEAR_IT(TIMER_HANDLE, TIM_IT_UPDATE);
+        CLASS_INSTANCE->handleConversionTimerElapsed();
+    }
 }
 
 extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	if(huart->Instance == DS18B20_UART)
-	{
-		CLASS_INSTANCE->handleTransactionComplete();
-	}
+    if(huart->Instance == DS18B20_UART)
+    {
+        CLASS_INSTANCE->handleTransactionComplete();
+    }
 }
 
 extern "C" void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
-	if(huart->Instance == DS18B20_UART)
-	{
-		CLASS_INSTANCE->handleUartError();
-	}
+    if(huart->Instance == DS18B20_UART)
+    {
+        CLASS_INSTANCE->handleUartError();
+    }
 }
 
 } //namespace DS18B20

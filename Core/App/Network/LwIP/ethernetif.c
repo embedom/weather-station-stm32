@@ -52,8 +52,8 @@
 /* Data Type Definitions */
 typedef enum
 {
-    RX_ALLOC_OK       = 0x00,
-    RX_ALLOC_ERROR    = 0x01
+    RX_ALLOC_OK = 0x00,
+    RX_ALLOC_ERROR = 0x01
 } RxAllocStatusTypeDef;
 
 typedef struct
@@ -64,13 +64,13 @@ typedef struct
 
 /*********************** PRIVATE FUNCTION PROTOTYPES *************************/
 
-static void low_level_init(struct netif * NetIf);
-static struct pbuf * low_level_input(struct netif *NetIf);
+static void low_level_init(struct netif *NetIf);
+static struct pbuf *low_level_input(struct netif *NetIf);
 static err_t low_level_output(struct netif *NetIf, struct pbuf *p);
 static void pbuf_free_custom(struct pbuf *Buffer);
 
-static void ethernetif_input_thread(void * Argument);
-static void ethernet_link_thread(void * Argument);
+static void ethernetif_input_thread(void *Argument);
+static void ethernet_link_thread(void *Argument);
 
 /***************************** PRIVATE VARIABLES *****************************/
 
@@ -87,9 +87,9 @@ LWIP_MEMPOOL_DECLARE(RX_POOL, ETH_RX_BUFFER_CNT, sizeof(RxBuff_t), "Zero-copy RX
 /* FreeRTOS config */
 static StaticSemaphore_t RxPktSemaphoreStorage;
 static StaticSemaphore_t TxPktSemaphoreStorage;
-SemaphoreHandle_t RxPktSemaphore = NULL;   /* Semaphore to signal incoming packets */
-SemaphoreHandle_t TxPktSemaphore = NULL;   /* Semaphore to signal transmit packet complete */
-                                  
+SemaphoreHandle_t RxPktSemaphore = NULL; /* Semaphore to signal incoming packets */
+SemaphoreHandle_t TxPktSemaphore = NULL; /* Semaphore to signal transmit packet complete */
+
 /********************************* FUNCTIONS *********************************/
 
 #if !LWIP_ARP
@@ -170,8 +170,8 @@ static void low_level_init(struct netif *NetIf)
     {
         Error_Handler();
     }
-    vQueueAddToRegistry(RxPktSemaphore, "RxPktSem" );
-    vQueueAddToRegistry(TxPktSemaphore, "TxPktSem" );
+    vQueueAddToRegistry(RxPktSemaphore, "RxPktSem");
+    vQueueAddToRegistry(TxPktSemaphore, "TxPktSem");
 
     /* maximum transfer unit */
     NetIf->mtu = ETH_MAX_PAYLOAD;
@@ -186,24 +186,32 @@ static void low_level_init(struct netif *NetIf)
         /* set MAC hardware address */
         memcpy(NetIf->hwaddr, MacAddr, ETH_HWADDR_LEN);
 
-        /* Accept broadcast address and ARP traffic */
-        #if LWIP_ARP
-            NetIf->flags |= NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP;
-        #else
-            NetIf->flags |= NETIF_FLAG_BROADCAST;
-        #endif /* LWIP_ARP */
+/* Accept broadcast address and ARP traffic */
+#if LWIP_ARP
+        NetIf->flags |= NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP;
+#else
+        NetIf->flags |= NETIF_FLAG_BROADCAST;
+#endif /* LWIP_ARP */
 
         BaseType_t xReturned;
         /* create the task that handles the ETH_MAC */
-        xReturned = xTaskCreate(ethernetif_input_thread, "EthIfInput", INTERFACE_THREAD_STACK_SIZE,
-                                                                NetIf, (tskIDLE_PRIORITY + 4), NULL);
+        xReturned = xTaskCreate(ethernetif_input_thread,
+                                "EthIfInput",
+                                INTERFACE_THREAD_STACK_SIZE,
+                                NetIf,
+                                (tskIDLE_PRIORITY + 4),
+                                NULL);
         if(xReturned != pdPASS)
         {
             Error_Handler();
         }
         /* monitor link changes in the background (detects link up when starting with the cable disconnected) */
-        xReturned = xTaskCreate(ethernet_link_thread, "EthIfLink", INTERFACE_THREAD_STACK_SIZE,
-                                                            NetIf, (tskIDLE_PRIORITY + 3), NULL);
+        xReturned = xTaskCreate(ethernet_link_thread,
+                                "EthIfLink",
+                                INTERFACE_THREAD_STACK_SIZE,
+                                NetIf,
+                                (tskIDLE_PRIORITY + 3),
+                                NULL);
         if(xReturned != pdPASS)
         {
             Error_Handler();
@@ -232,13 +240,13 @@ static void low_level_init(struct netif *NetIf)
  */
 static err_t low_level_output(struct netif *NetIf, struct pbuf *p)
 {
-    (void) NetIf;
+    (void)NetIf;
     uint32_t i = 0U;
     struct pbuf *q = NULL;
     err_t ErrVal = ERR_OK;
-    ETH_BufferTypeDef TxBuffer[ETH_TX_DESC_CNT] = {0};
+    ETH_BufferTypeDef TxBuffer[ETH_TX_DESC_CNT] = { 0 };
 
-    memset(TxBuffer, 0 , ETH_TX_DESC_CNT * sizeof(ETH_BufferTypeDef));
+    memset(TxBuffer, 0, ETH_TX_DESC_CNT * sizeof(ETH_BufferTypeDef));
 
     for(q = p; q != NULL; q = q->next, i++)
     {
@@ -251,7 +259,7 @@ static err_t low_level_output(struct netif *NetIf, struct pbuf *p)
 
         if(i > 0)
         {
-            TxBuffer[i-1].next = &TxBuffer[i];
+            TxBuffer[i - 1].next = &TxBuffer[i];
         }
         if(q->next == NULL)
         {
@@ -264,12 +272,12 @@ static err_t low_level_output(struct netif *NetIf, struct pbuf *p)
     TxConfig.pData = p;
     pbuf_ref(p);
 
-    if(HAL_ETH_Transmit_IT(&EthernetHandle, &TxConfig) == HAL_OK) 
+    if(HAL_ETH_Transmit_IT(&EthernetHandle, &TxConfig) == HAL_OK)
     {
         while(xSemaphoreTake(TxPktSemaphore, ETH_DMA_TRANSMIT_TIMEOUT) != pdTRUE);
         HAL_ETH_ReleaseTxPacket(&EthernetHandle);
-    } 
-    else 
+    }
+    else
     {
         pbuf_free(p);
     }
@@ -283,9 +291,9 @@ static err_t low_level_output(struct netif *NetIf, struct pbuf *p)
  * @return a pbuf filled with the received packet (including MAC header)
  *         NULL on memory error
   */
-static struct pbuf * low_level_input(struct netif *NetIf)
+static struct pbuf *low_level_input(struct netif *NetIf)
 {
-    (void) NetIf;
+    (void)NetIf;
     struct pbuf *RxBuffer = NULL;
 
     if(RxAllocStatus == RX_ALLOC_OK)
@@ -302,12 +310,12 @@ static struct pbuf * low_level_input(struct netif *NetIf)
   */
 static void pbuf_free_custom(struct pbuf *Buffer)
 {
-    struct pbuf_custom* CustomBuf = (struct pbuf_custom*)Buffer;
+    struct pbuf_custom *CustomBuf = (struct pbuf_custom *)Buffer;
     LWIP_MEMPOOL_FREE(RX_POOL, CustomBuf);
 
     /* If the Rx Buffer Pool was exhausted, signal the ethernetif_input task to
     * call HAL_ETH_GetRxDataBuffer to rebuild the Rx descriptors. */
-    if (RxAllocStatus == RX_ALLOC_ERROR)
+    if(RxAllocStatus == RX_ALLOC_ERROR)
     {
         RxAllocStatus = RX_ALLOC_OK;
         xSemaphoreGive(RxPktSemaphore);
@@ -321,9 +329,9 @@ static void pbuf_free_custom(struct pbuf *Buffer)
   * @param Argument the lwip network interface structure for this ethernetif
   * @retval None
   */
-static void ethernet_link_thread(void * Argument)
+static void ethernet_link_thread(void *Argument)
 {
-    struct netif *NetIf = (struct netif *) Argument;
+    struct netif *NetIf = (struct netif *)Argument;
     ETH_PHY_LinkState_t PhyLinkState = 0;
     uint8_t LinkChanged = 0U;
     uint32_t Speed = 0U, DuplexMode = 0U;
@@ -347,12 +355,11 @@ static void ethernet_link_thread(void * Argument)
             {
                 if(HW_ETH_update_mac_config(&EthernetHandle, DuplexMode, Speed) == HW_STATUS_OK)
                 {
-                    NetIf->link_speed = (Speed == ETH_SPEED_100M ? LINK_NETIF_SPEED_IN_BPS : 
-                                                                   (LINK_NETIF_SPEED_IN_BPS / 10U));
+                    NetIf->link_speed = (Speed == ETH_SPEED_100M ? LINK_NETIF_SPEED_IN_BPS
+                                                                 : (LINK_NETIF_SPEED_IN_BPS / 10U));
                     netif_set_up(NetIf);
                     netif_set_link_up(NetIf);
                 }
-
             }
         }
         vTaskDelay(pdMS_TO_TICKS(100));
@@ -368,7 +375,7 @@ static void ethernet_link_thread(void * Argument)
  * @param Argument the lwip network interface structure for this ethernetif
  * @retval None
  */
-static void ethernetif_input_thread(void * Argument)
+static void ethernetif_input_thread(void *Argument)
 {
     struct pbuf *RxBuffer = NULL;
     struct netif *NetIf = (struct netif *)Argument;
@@ -380,9 +387,9 @@ static void ethernetif_input_thread(void * Argument)
             do
             {
                 RxBuffer = low_level_input(NetIf);
-                if (RxBuffer != NULL)
+                if(RxBuffer != NULL)
                 {
-                    if (NetIf->input(RxBuffer, NetIf) != ERR_OK)
+                    if(NetIf->input(RxBuffer, NetIf) != ERR_OK)
                     {
                         pbuf_free(RxBuffer);
                     }
@@ -407,7 +414,7 @@ void HAL_ETH_RxLinkCallback(void **pStart, void **pEnd, uint8_t *buff, uint16_t 
     p->len = Length;
 
     /* Chain the buffer. */
-    if (!*ppStart)
+    if(!*ppStart)
     {
         *ppStart = p; /* The first buffer of the packet. */
     }
@@ -415,17 +422,17 @@ void HAL_ETH_RxLinkCallback(void **pStart, void **pEnd, uint8_t *buff, uint16_t 
     {
         (*ppEnd)->next = p; /* Chain the buffer to the end of the packet. */
     }
-    *ppEnd  = p;
+    *ppEnd = p;
 
     /* Update the total length of all the buffers of the chain. Each pbuf in the chain should 
         have its tot_len set to its own length, plus the length of all the following pbufs in the chain. */
-    for (p = *ppStart; p != NULL; p = p->next)
+    for(p = *ppStart; p != NULL; p = p->next)
     {
         p->tot_len += Length;
     }
 }
 
-void HAL_ETH_TxFreeCallback(uint32_t * buff)
+void HAL_ETH_TxFreeCallback(uint32_t *buff)
 {
     pbuf_free((struct pbuf *)buff);
 }
@@ -452,7 +459,7 @@ void HAL_ETH_RxAllocateCallback(uint8_t **buff)
 
 void HAL_ETH_RxCpltCallback(ETH_HandleTypeDef *handlerEth)
 {
-    (void) handlerEth;
+    (void)handlerEth;
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     xSemaphoreGiveFromISR(RxPktSemaphore, &xHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -460,7 +467,7 @@ void HAL_ETH_RxCpltCallback(ETH_HandleTypeDef *handlerEth)
 
 void HAL_ETH_TxCpltCallback(ETH_HandleTypeDef *HandlerEth)
 {
-    (void) HandlerEth;
+    (void)HandlerEth;
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     xSemaphoreGiveFromISR(TxPktSemaphore, &xHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);

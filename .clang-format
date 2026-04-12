@@ -1,8 +1,7 @@
 ---
 BasedOnStyle: LLVM
+UseTab: Never
 IndentWidth: 4
-UseTab: Always
-TabWidth: 4
 ColumnLimit: 100
 BreakBeforeBraces: Allman
 AllowShortFunctionsOnASingleLine: Empty
@@ -14,3 +13,5 @@ Cpp11BracedListStyle: false
 BinPackArguments: false
 ReflowComments: false
 AccessModifierOffset: 0
+SkipMacroDefinitionBody: true
+AllowShortEnumsOnASingleLine: true

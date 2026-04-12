@@ -115,6 +115,11 @@ target_link_options(${PROJECT_NAME} PRIVATE
     --specs=nosys.specs
 )
 
+# Optional: run clang-format as part of the build
+if(TARGET format)
+    add_dependencies(${CMAKE_PROJECT_NAME} format)
+endif()
+
 if(CMAKE_C_STANDARD LESS 11)
     message(ERROR "Generated code requires C11 or higher")
 endif()

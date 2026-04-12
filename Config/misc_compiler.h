@@ -24,9 +24,9 @@
 /****************************** DEBUG MACROS *********************************/
 
 #ifndef RELEASE
-  #define DEBUG_BRKPT()   __BKPT(0)
+#define DEBUG_BRKPT()   __BKPT(0)
 #else
-  #define DEBUG_BRKPT()   ((void)0)
+#define DEBUG_BRKPT()   ((void)0)
 #endif
 
 #endif /* COMPILER_H */

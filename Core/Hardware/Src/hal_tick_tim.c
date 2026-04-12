@@ -11,7 +11,6 @@
 
 #include "stm32f7xx_hal.h"
 
-
 /********************************* TYPEDEFS **********************************/
 
 static TIM_HandleTypeDef TimerHandle;
@@ -20,14 +19,14 @@ static TIM_HandleTypeDef TimerHandle;
 
 HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
 {
-    RCC_ClkInitTypeDef ClkConfig = {0};
+    RCC_ClkInitTypeDef ClkConfig = { 0 };
     HAL_StatusTypeDef Status = HAL_OK;
     uint32_t FlashLatency = 0;
     uint32_t TimClock = 0;
     uint32_t Apb1Prescaler = 0;
     uint32_t PrescalerValue = 0;
 
-    if (TickPriority >= (1UL << __NVIC_PRIO_BITS))
+    if(TickPriority >= (1UL << __NVIC_PRIO_BITS))
     {
         return HAL_ERROR;
     }
@@ -36,7 +35,7 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
     HAL_RCC_GetClockConfig(&ClkConfig, &FlashLatency);
     Apb1Prescaler = ClkConfig.APB1CLKDivider;
 
-    if (Apb1Prescaler == RCC_HCLK_DIV1)
+    if(Apb1Prescaler == RCC_HCLK_DIV1)
     {
         TimClock = HAL_RCC_GetPCLK1Freq();
     }
@@ -55,12 +54,12 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
     TimerHandle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
     Status = HAL_TIM_Base_Init(&TimerHandle);
-    if (Status == HAL_OK)
+    if(Status == HAL_OK)
     {
         Status = HAL_TIM_Base_Start_IT(&TimerHandle);
     }
 
-    if (Status == HAL_OK)
+    if(Status == HAL_OK)
     {
         HAL_NVIC_SetPriority(TIM6_DAC_IRQn, TickPriority, 0U);
         HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);

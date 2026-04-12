@@ -31,7 +31,6 @@
 
 // #define configSYSTICK_CLOCK_HZ                  1000
 
-
 /* Scheduling behaviour related definitions. **********************************/
 
 #define configTICK_RATE_HZ                         500
@@ -74,7 +73,6 @@
 
 #define configUSE_NEWLIB_REENTRANT                 0
 
-
 /* Software timer related definitions. ****************************************/
 
 #define configUSE_TIMERS                1
@@ -85,13 +83,11 @@
 
 #define configTIMER_QUEUE_LENGTH        10
 
-
 /* Event Group related definitions. *******************************************/
 
 #define configUSE_EVENT_GROUPS    1
 
 #define configUSE_STREAM_BUFFERS    1
-
 
 /* Memory allocation related definitions. *************************************/
 
@@ -109,7 +105,6 @@
 
 #define configENABLE_HEAP_PROTECTOR                  0
 
-
 /* Interrupt nesting behaviour configuration. *********************************/
 
 #define configPRIO_BITS                               4
@@ -118,7 +113,6 @@
 
 #define configKERNEL_INTERRUPT_PRIORITY          ( configLIBRARY_LOWEST_INTERRUPT_PRIORITY << ( 8 - configPRIO_BITS ) )
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY     ( configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << ( 8 - configPRIO_BITS ) )
-
 
 /* Hook and callback function related definitions. ****************************/
 
@@ -131,14 +125,13 @@
 
 #define configCHECK_FOR_STACK_OVERFLOW        2
 
-
 /* Run time and task stats gathering related definitions. *********************/
 
 #define configGENERATE_RUN_TIME_STATS           0
 
 #if (configGENERATE_RUN_TIME_STATS == 1)
-extern void vConfigureRunTimeStatsTimer( void );
-extern uint32_t ulGetRunTimeCounterValue( void );
+extern void vConfigureRunTimeStatsTimer(void);
+extern uint32_t ulGetRunTimeCounterValue(void);
 #define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() vConfigureRunTimeStatsTimer()
 #define portGET_RUN_TIME_COUNTER_VALUE()         ulGetRunTimeCounterValue()
 #endif
@@ -149,18 +142,16 @@ extern uint32_t ulGetRunTimeCounterValue( void );
 
 #define configRECORD_STACK_HIGH_ADDRESS         1
 
-
 /* Co-routine related definitions. ********************************************/
 
 #define configUSE_CO_ROUTINES              0
 
 #define configMAX_CO_ROUTINE_PRIORITIES    1
 
-
 /* Debugging assistance. ******************************************************/
 
 /* *INDENT-OFF* */
-#define configASSERT( x )         \
+#define configASSERT(x)         \
     if( ( x ) == 0 )              \
     {                             \
         taskDISABLE_INTERRUPTS(); \
@@ -168,7 +159,6 @@ extern uint32_t ulGetRunTimeCounterValue( void );
         ;                         \
     }
 /* *INDENT-ON* */
-
 
 /* FreeRTOS MPU specific definitions. *****************************************/
 
@@ -211,7 +201,6 @@ extern uint32_t ulGetRunTimeCounterValue( void );
 #define configENABLE_MVE                    0
 
 #define configCHECK_HANDLER_INSTALLATION    1
-
 
 /* Definitions that include or exclude functionality. *************************/
 

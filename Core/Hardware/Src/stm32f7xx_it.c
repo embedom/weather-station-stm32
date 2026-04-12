@@ -27,7 +27,7 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
     while(1)
-    { 
+    {
         DEBUG_BRKPT();
     }
 }
@@ -42,7 +42,7 @@ void MemManage_Handler(void)
 
 void BusFault_Handler(void)
 {
-    while (1)
+    while(1)
     {
         DEBUG_BRKPT();
     }
@@ -50,7 +50,7 @@ void BusFault_Handler(void)
 
 void UsageFault_Handler(void)
 {
-    while (1)
+    while(1)
     {
         DEBUG_BRKPT();
     }
@@ -64,7 +64,7 @@ void DebugMon_Handler(void)
 void Error_Handler(void)
 {
     __disable_irq();
-    while (1)
+    while(1)
     {
         DEBUG_BRKPT();
     }

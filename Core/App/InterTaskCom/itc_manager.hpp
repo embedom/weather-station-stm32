@@ -31,7 +31,7 @@ struct TemperaturePayload
 {
     uint32_t Sequence = 0U;
     TickType_t TimestampTicks = 0U;
-    uint16_t TemperaturesRaw[NUMBER_OF_SENSORS] = {0U};
+    uint16_t TemperaturesRaw[NUMBER_OF_SENSORS] = { 0U };
 };
 
 enum class ItcChannel : uint8_t
@@ -46,9 +46,9 @@ struct ChannelConfig
     ItcChannel Channel = ItcChannel::Temperature;
     size_t PayloadSize = 0U;
     UBaseType_t QueueLength = ITC_SINGLE_QUEUE_LENGTH;
-    uint8_t* QueueStorageBuffer = nullptr;
+    uint8_t *QueueStorageBuffer = nullptr;
     size_t QueueStorageBufferSize = 0U;
-    StaticQueue_t* QueueControlBlock = nullptr;
+    StaticQueue_t *QueueControlBlock = nullptr;
 };
 
 /*********************************** CLASS ***********************************/
@@ -57,18 +57,17 @@ class ItcManager
 {
     /**************************** PUBLIC MEMBERS *****************************/
     public:
-    ItcManager(const ItcManager&) = delete;
-    ItcManager& operator=(const ItcManager&) = delete;
+    ItcManager(const ItcManager &) = delete;
+    ItcManager &operator=(const ItcManager &) = delete;
 
-    static ItcManager& getInstance();
-    bool initialize(const ChannelConfig* Configs, size_t ConfigCount);
-    bool publishMessage(ItcChannel Channel, const void* Data, size_t DataSize);
-    bool waitForMessage(ItcChannel Channel, void* DataOut, size_t DataOutMaxSize, 
-                                                        TickType_t TimeoutTicks);
+    static ItcManager &getInstance();
+    bool initialize(const ChannelConfig *Configs, size_t ConfigCount);
+    bool publishMessage(ItcChannel Channel, const void *Data, size_t DataSize);
+    bool waitForMessage(ItcChannel Channel, void *DataOut, size_t DataOutMaxSize,
+                        TickType_t TimeoutTicks);
 
     /**************************** PRIVATE MEMBERS ****************************/
     private:
-
     struct ItcQueueSlot
     {
         QueueHandle_t QueueHandle = nullptr;
@@ -79,8 +78,8 @@ class ItcManager
     };
 
     bool isChannelValid(const ItcChannel Channel);
-    bool applyChannelConfig(const ChannelConfig& Config);
-    bool isChannelConfigValid(const ChannelConfig& Config);
+    bool applyChannelConfig(const ChannelConfig &Config);
+    bool isChannelConfigValid(const ChannelConfig &Config);
 
     ItcManager() = default;
     bool _Initialized = false;

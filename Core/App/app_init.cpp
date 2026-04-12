@@ -30,11 +30,10 @@ constexpr uint8_t ITC_CHANNEL_COUNT = 2U;
 /******************************* PRIVATE VAR *********************************/
 
 static StaticQueue_t ITC_TEMP_QUEUE_CONTROL = {};
-static uint8_t ITC_TEMPERATURE_STORAGE[sizeof(AppCom::TemperaturePayload)] = {0U};
+static uint8_t ITC_TEMPERATURE_STORAGE[sizeof(AppCom::TemperaturePayload)] = { 0U };
 
 static StaticQueue_t ITC_GENERIC1_QUEUE_CONTROL = {};
-static uint8_t ITC_GENERIC1_STORAGE[sizeof(uint32_t)] = {0U};
-
+static uint8_t ITC_GENERIC1_STORAGE[sizeof(uint32_t)] = { 0U };
 
 /********************************* FUNCTIONS *********************************/
 
@@ -70,22 +69,18 @@ AppStatus initialize(void)
     SEGGER_RTT_Init();
 
     const AppCom::ChannelConfig ItcChannelsConfig[ITC_CHANNEL_COUNT] = {
-        {
-            .Channel = AppCom::ItcChannel::Temperature,
-            .PayloadSize = sizeof(AppCom::TemperaturePayload),
-            .QueueLength = 1U,
-            .QueueStorageBuffer = ITC_TEMPERATURE_STORAGE,
-            .QueueStorageBufferSize = sizeof(ITC_TEMPERATURE_STORAGE),
-            .QueueControlBlock = &ITC_TEMP_QUEUE_CONTROL
-        },
-        {
-            .Channel = AppCom::ItcChannel::Generic1,
-            .PayloadSize = sizeof(uint32_t),
-            .QueueLength = 1U,
-            .QueueStorageBuffer = ITC_GENERIC1_STORAGE,
-            .QueueStorageBufferSize = sizeof(ITC_GENERIC1_STORAGE),
-            .QueueControlBlock = &ITC_GENERIC1_QUEUE_CONTROL
-        }
+        { .Channel = AppCom::ItcChannel::Temperature,
+          .PayloadSize = sizeof(AppCom::TemperaturePayload),
+          .QueueLength = 1U,
+          .QueueStorageBuffer = ITC_TEMPERATURE_STORAGE,
+          .QueueStorageBufferSize = sizeof(ITC_TEMPERATURE_STORAGE),
+          .QueueControlBlock = &ITC_TEMP_QUEUE_CONTROL },
+        { .Channel = AppCom::ItcChannel::Generic1,
+          .PayloadSize = sizeof(uint32_t),
+          .QueueLength = 1U,
+          .QueueStorageBuffer = ITC_GENERIC1_STORAGE,
+          .QueueStorageBufferSize = sizeof(ITC_GENERIC1_STORAGE),
+          .QueueControlBlock = &ITC_GENERIC1_QUEUE_CONTROL }
     };
 
     if(!AppCom::ItcManager::getInstance().initialize(ItcChannelsConfig, ITC_CHANNEL_COUNT))
