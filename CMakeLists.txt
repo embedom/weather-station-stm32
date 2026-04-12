@@ -13,7 +13,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Include toolchain file (must be before project() so compilers are set)
-include("dep-arm-none-eabi-gcc.cmake")
+include("CMake/dep-arm-none-eabi-gcc.cmake")
 
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
@@ -23,7 +23,7 @@ project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
 # Optional bootstrap for clang-tidy/clang-format binaries.
-include("dep-tools-clang.cmake")
+include("CMake/dep-tools-clang.cmake")
 
 # Enable CMake support for ASM, C and CPP languages
 enable_language(C ASM CXX)
@@ -42,10 +42,10 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 
 ############################ INCLUDE DEPENDENCIES #############################
 # Include STM32F7xx HAL drivers
-include("dep-drivers-stm32.cmake")
+include("CMake/dep-drivers-stm32.cmake")
 
 # Include middleware dependencies (FreeRTOS, lwIP)
-include("dep-middleware.cmake")
+include("CMake/dep-middleware.cmake")
 
 ################################ TARGET DIRS ##################################
 set(APP_PATH ${CMAKE_SOURCE_DIR}/Core/App)
@@ -67,7 +67,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 set(CORE_SOURCES
-    ${CMAKE_SOURCE_DIR}/startup_stm32f746xx.s
+    ${CMAKE_SOURCE_DIR}/Core/Startup/startup_stm32f746xx.s
     ${CMAKE_SOURCE_DIR}/Core/main.cpp
     ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/hardware_config.c
     ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/system_stm32f7xx.c
