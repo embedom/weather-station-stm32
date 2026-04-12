@@ -11,32 +11,18 @@
 #define STM32F7XX_IT_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-/********************************* INCLUDES **********************************/
+    void NMI_Handler(void);
+    void HardFault_Handler(void);
+    void MemManage_Handler(void);
+    void BusFault_Handler(void);
+    void UsageFault_Handler(void);
+    void DebugMon_Handler(void);
 
-
-
-/********************************** DEFINES **********************************/
-
-
-
-/********************************* TYPEDEFS **********************************/
-
-
-
-/**************************** FUNCTION PROTOTYPES ****************************/
-
-void NMI_Handler(void);
-void HardFault_Handler(void);
-void MemManage_Handler(void);
-void BusFault_Handler(void);
-void UsageFault_Handler(void);
-void DebugMon_Handler(void);
-
-void TIM6_DAC_IRQHandler(void);
-
+    void TIM6_DAC_IRQHandler(void);
 
 #ifdef __cplusplus
 }

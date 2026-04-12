@@ -25,29 +25,25 @@ namespace Sensor
 
 /******************************** CONSTEXPR **********************************/
 
-
-
 /********************************* TYPEDEFS **********************************/
-
-
 
 /*********************************** CLASS ***********************************/
 
 class SensorsTask : public GenericTask
 {
     public:
-    static SensorsTask& getInstance();
+    static SensorsTask &getInstance();
 
     /* Remove copy constructor and assignment operator */
-    SensorsTask(const SensorsTask&) = delete;
-    SensorsTask& operator=(const SensorsTask&) = delete;
+    SensorsTask(const SensorsTask &) = delete;
+    SensorsTask &operator=(const SensorsTask &) = delete;
 
     void initSensors();
-    
+
     private:
     SensorsTask() = default;
     ~SensorsTask() = default;
-    
+
     virtual void runCyclic() override final;
     virtual void onTaskStartUp() override final;
 
@@ -55,7 +51,7 @@ class SensorsTask : public GenericTask
     StaticTask_t _TaskControlBlock;
 
     DS18B20::DS18B20Sensor _TemperatureSensor = {};
-    AppCom::ItcManager& _ItcManager = AppCom::ItcManager::getInstance();
+    AppCom::ItcManager &_ItcManager = AppCom::ItcManager::getInstance();
 
 }; //class SensorsTask
 

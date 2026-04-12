@@ -1,18 +1,18 @@
 {
     "cmake.generator": "Ninja",
     "cmake.configureArgs": [
-        "-DCMAKE_TOOLCHAIN_FILE=dep-arm-none-eabi-gcc.cmake"
+        "-DCMAKE_TOOLCHAIN_FILE=${workspaceFolder}/dep-arm-none-eabi-gcc.cmake"
     ],
     "cmake.environment": {
         "PATH": "/opt/homebrew/bin:${env:PATH}"
     },
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "[c]": {
         "editor.defaultFormatter": "ms-vscode.cpptools"
     },
     "[cpp]": {
         "editor.defaultFormatter": "ms-vscode.cpptools"
     },
-    "C_Cpp.clang_format_path": "${workspaceFolder}/toolchain/clang/bin/clang-format",
+    "C_Cpp.clang_format_path": "${workspaceFolder}/Tools/clang/bin/clang-format",
     "C_Cpp.clang_format_style": "file"
 }

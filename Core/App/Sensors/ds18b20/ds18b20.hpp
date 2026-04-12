@@ -17,7 +17,6 @@
 #include "app_config.hpp"
 #include "stm32f7xx_hal.h"
 
-
 namespace DS18B20
 {
 
@@ -33,26 +32,26 @@ constexpr uint16_t INVALID_TEMP = 0xFFFFU;
 
 enum State : uint8_t
 {
-	STATE_UNINITIALIZED = 0,
-	STATE_IDLE,
-	STATE_SEARCHING,
-	STATE_RESET_FOR_CONVERT,
-	STATE_SKIP_ROM_FOR_CONVERT,
-	STATE_CONVERT_T,
-	STATE_WAIT_CONVERSION,
-	STATE_RESET_FOR_READ,
-	STATE_MATCH_ROM_FOR_READ,
-	STATE_READ_SCRATCH_CMD,
-	STATE_READ_BYTE
+    STATE_UNINITIALIZED = 0,
+    STATE_IDLE,
+    STATE_SEARCHING,
+    STATE_RESET_FOR_CONVERT,
+    STATE_SKIP_ROM_FOR_CONVERT,
+    STATE_CONVERT_T,
+    STATE_WAIT_CONVERSION,
+    STATE_RESET_FOR_READ,
+    STATE_MATCH_ROM_FOR_READ,
+    STATE_READ_SCRATCH_CMD,
+    STATE_READ_BYTE
 };
 
 enum SearchState : uint8_t
 {
-	SRCH_IDLE = 0,
-	SRCH_RESET,
-	SRCH_CMD,
-	SRCH_READ_BITS,
-	SRCH_WRITE_DIR
+    SRCH_IDLE = 0,
+    SRCH_RESET,
+    SRCH_CMD,
+    SRCH_READ_BITS,
+    SRCH_WRITE_DIR
 };
 
 enum Status : uint8_t
@@ -80,10 +79,10 @@ class DS18B20Sensor
     /**************************** Private Members ****************************/
     private:
     State _State = STATE_UNINITIALIZED;
-    uint16_t _LastTempRaw[NUMBER_OF_SENSORS] = {INVALID_TEMP};
+    uint16_t _LastTempRaw[NUMBER_OF_SENSORS] = { INVALID_TEMP };
     uint8_t _ScratchIndex = 0U;
-    uint8_t _Scratchpad[SCRATCHPAD_SIZE] = {0U};
-    uint8_t _RxBuffer[MATCH_ROM_FRAME_SIZE] = {0U};
+    uint8_t _Scratchpad[SCRATCHPAD_SIZE] = { 0U };
+    uint8_t _RxBuffer[MATCH_ROM_FRAME_SIZE] = { 0U };
     uint8_t _RomCodes[NUMBER_OF_SENSORS][ROM_CODE_SIZE] = {};
     uint8_t _MatchRomTxBuf[NUMBER_OF_SENSORS][MATCH_ROM_FRAME_SIZE] = {};
     uint8_t _NumSensorsFound = 1U;
@@ -94,16 +93,16 @@ class DS18B20Sensor
     uint8_t _SearchLastDiscrepancy = 0U;
     uint8_t _SearchLastZero = 0U;
     bool _SearchLastDeviceFlag = false;
-    uint8_t _SearchRomCode[ROM_CODE_SIZE] = {0U};
-    uint8_t _SearchTxBuf[2U] = {0U};
+    uint8_t _SearchRomCode[ROM_CODE_SIZE] = { 0U };
+    uint8_t _SearchTxBuf[2U] = { 0U };
 
     UART_HandleTypeDef _UartHandle = {};
     DMA_HandleTypeDef _UartRxDmaHandle = {};
     DMA_HandleTypeDef _UartTxDmaHandle = {};
     TIM_HandleTypeDef _TimerHandle = {};
 
-    void setInterruptCallbacksCfg(DS18B20Sensor *Instance, UART_HandleTypeDef *UartHandle, 
-                                                        TIM_HandleTypeDef *TimHandle);
+    void setInterruptCallbacksCfg(DS18B20Sensor *Instance, UART_HandleTypeDef *UartHandle,
+                                  TIM_HandleTypeDef *TimHandle);
     uint8_t calculateCrc(const uint8_t *Data, uint8_t Length);
     uint8_t decodeByte(const uint8_t *Frame);
     void encodeByte(uint8_t Byte, uint8_t *Frame);
@@ -118,7 +117,6 @@ class DS18B20Sensor
     Status startReadScratchpadSequence(void);
     Status startConversionTempTimer(void);
     void setErrorAndIdle(void);
-
 
 }; //class DS18B20Sensor
 

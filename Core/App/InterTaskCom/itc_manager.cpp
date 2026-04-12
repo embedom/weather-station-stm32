@@ -16,13 +16,13 @@ namespace AppCom
 
 /********************************** PUBLIC ***********************************/
 
-ItcManager& ItcManager::getInstance()
+ItcManager &ItcManager::getInstance()
 {
     static ItcManager Instance;
     return Instance;
 }
 
-bool ItcManager::initialize(const ChannelConfig* Configs, size_t ConfigCount)
+bool ItcManager::initialize(const ChannelConfig *Configs, size_t ConfigCount)
 {
     if((!_Initialized) && (Configs != nullptr) && (ConfigCount != 0U))
     {
@@ -38,12 +38,12 @@ bool ItcManager::initialize(const ChannelConfig* Configs, size_t ConfigCount)
     return _Initialized;
 }
 
-bool ItcManager::publishMessage(ItcChannel Channel, const void* Data, size_t DataSize)
+bool ItcManager::publishMessage(ItcChannel Channel, const void *Data, size_t DataSize)
 {
     bool IsPublished = false;
     if(_Initialized && isChannelValid(Channel))
     {
-        const ItcQueueSlot& QueueSlot = _Queues[static_cast<size_t>(Channel)];
+        const ItcQueueSlot &QueueSlot = _Queues[static_cast<size_t>(Channel)];
         if((QueueSlot.QueueHandle != nullptr) && QueueSlot.Configured)
         {
             if(DataSize == QueueSlot.PayloadSize)
@@ -62,13 +62,13 @@ bool ItcManager::publishMessage(ItcChannel Channel, const void* Data, size_t Dat
     return IsPublished;
 }
 
-bool ItcManager::waitForMessage(ItcChannel Channel, void* DataOut, size_t DataOutMaxSize,
-                                                                TickType_t TimeoutTicks)
+bool ItcManager::waitForMessage(ItcChannel Channel, void *DataOut, size_t DataOutMaxSize,
+                                TickType_t TimeoutTicks)
 {
     bool IsReceived = false;
     if(_Initialized && isChannelValid(Channel) && (DataOutMaxSize != 0U))
     {
-        const ItcQueueSlot& QueueSlot = _Queues[static_cast<size_t>(Channel)];
+        const ItcQueueSlot &QueueSlot = _Queues[static_cast<size_t>(Channel)];
         if((QueueSlot.QueueHandle != nullptr) && QueueSlot.Configured)
         {
             if(DataOutMaxSize >= QueueSlot.PayloadSize)
@@ -88,23 +88,22 @@ bool ItcManager::isChannelValid(const ItcChannel Channel)
     return (Channel < ItcChannel::MaxNumber);
 }
 
-bool ItcManager::applyChannelConfig(const ChannelConfig& Config)
+bool ItcManager::applyChannelConfig(const ChannelConfig &Config)
 {
     bool IsApplied = false;
     if(isChannelValid(Config.Channel) && isChannelConfigValid(Config))
     {
-        ItcQueueSlot& QueueSlot = _Queues[static_cast<size_t>(Config.Channel)];
+        ItcQueueSlot &QueueSlot = _Queues[static_cast<size_t>(Config.Channel)];
         if(!QueueSlot.Configured)
         {
-            QueueSlot.QueueHandle = xQueueCreateStatic(
-                Config.QueueLength,
-                Config.PayloadSize,
-                Config.QueueStorageBuffer,
-                Config.QueueControlBlock
-            );
+            QueueSlot.QueueHandle = xQueueCreateStatic(Config.QueueLength,
+                                                       Config.PayloadSize,
+                                                       Config.QueueStorageBuffer,
+                                                       Config.QueueControlBlock);
             if(QueueSlot.QueueHandle != nullptr)
             {
-                QueueSlot.QueueName = "ItcChannel" + std::to_string(static_cast<unsigned int>(Config.Channel));
+                QueueSlot.QueueName =
+                    "ItcChannel" + std::to_string(static_cast<unsigned int>(Config.Channel));
                 vQueueAddToRegistry(QueueSlot.QueueHandle, QueueSlot.QueueName.c_str());
                 QueueSlot.PayloadSize = Config.PayloadSize;
                 QueueSlot.QueueLength = Config.QueueLength;
@@ -116,14 +115,14 @@ bool ItcManager::applyChannelConfig(const ChannelConfig& Config)
     return IsApplied;
 }
 
-bool ItcManager::isChannelConfigValid(const ChannelConfig& Config)
+bool ItcManager::isChannelConfigValid(const ChannelConfig &Config)
 {
     bool IsValid = false;
-    if((Config.PayloadSize != 0U) && (Config.QueueLength != 0U) 
-        && (Config.QueueStorageBuffer != nullptr) 
-        && (Config.QueueControlBlock != nullptr))
+    if((Config.PayloadSize != 0U) && (Config.QueueLength != 0U) &&
+       (Config.QueueStorageBuffer != nullptr) && (Config.QueueControlBlock != nullptr))
     {
-        const size_t RequiredStorageSize = (Config.PayloadSize * static_cast<size_t>(Config.QueueLength));
+        const size_t RequiredStorageSize =
+            (Config.PayloadSize * static_cast<size_t>(Config.QueueLength));
         if(Config.QueueStorageBufferSize >= RequiredStorageSize)
         {
             IsValid = true;

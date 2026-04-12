@@ -1,10 +1,11 @@
 include_guard(GLOBAL)
 
 option(BOOTSTRAP_CLANG_TOOLS "Download and extract clang tools archive" ON)
-option(ENABLE_CLANG_FORMAT "Run clang-format during build" OFF)
 option(ENABLE_CLANG_TIDY "Run clang-tidy during build" ON)
+option(ENABLE_CLANG_FORMAT "Run clang-format during build" ON)
+option(CLANG_FORMAT_ON_BUILD "Auto-format sources on every build" ON)
 
-set(CLANG_TOOLS_DIR "${CMAKE_SOURCE_DIR}/tools")
+set(CLANG_TOOLS_DIR "${CMAKE_SOURCE_DIR}/Tools")
 set(CLANG_TOOLS_ARCHIVE "${CMAKE_BINARY_DIR}/_deps/clang-tools.tar.xz")
 
 set(CLANG_TOOLS_URL
@@ -133,18 +134,33 @@ if(ENABLE_CLANG_FORMAT AND EXISTS "${CLANG_FORMAT_EXE}")
         ${CMAKE_SOURCE_DIR}/Core/*.c    ${CMAKE_SOURCE_DIR}/Core/*.h
         ${CMAKE_SOURCE_DIR}/Config/*.h  ${CMAKE_SOURCE_DIR}/Config/*.hpp
     )
-    add_custom_target(format
-        COMMAND ${CLANG_FORMAT_EXE} -i ${ALL_FORMAT_SOURCES}
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        COMMENT "Running clang-format on project sources"
-        VERBATIM
+    list(REMOVE_ITEM ALL_FORMAT_SOURCES
+        ${CMAKE_SOURCE_DIR}/Config/SEGGER_RTT_Conf.h
+        ${CMAKE_SOURCE_DIR}/Config/stm32f7xx_hal_conf.h
+        ${CMAKE_SOURCE_DIR}/Core/Hardware/Inc/hardware_config.h
+        ${CMAKE_SOURCE_DIR}/Core/App/Network/LwIP/ethernetif.h
     )
-    # check-format: dry-run that fails on unformatted files (useful in CI)
-    add_custom_target(check-format
-        COMMAND ${CLANG_FORMAT_EXE} --dry-run --Werror ${ALL_FORMAT_SOURCES}
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        COMMENT "Checking clang-format compliance"
-        VERBATIM
-    )
+    # Exclude all arch LwIP sources
+    list(FILTER ALL_FORMAT_SOURCES EXCLUDE REGEX
+        "^${CMAKE_SOURCE_DIR}/Core/App/Network/LwIP/arch/")
+    list(FILTER ALL_FORMAT_SOURCES EXCLUDE REGEX
+        "^${CMAKE_SOURCE_DIR}/Core/App/Network/LwIP/BSP/")
+    
+    if(CLANG_FORMAT_ON_BUILD)
+        # Add clang-format as a pre-build step for the main target
+        add_custom_target(format
+            COMMAND ${CLANG_FORMAT_EXE} -i ${ALL_FORMAT_SOURCES}
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            COMMENT "Running clang-format on project sources"
+            VERBATIM
+        )
+        # check-format: dry-run that fails on unformatted files (useful in CI)
+        # add_custom_target(check-format
+        #     COMMAND ${CLANG_FORMAT_EXE} --dry-run --Werror ${ALL_FORMAT_SOURCES}
+        #     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        #     COMMENT "Checking clang-format compliance"
+        #     VERBATIM
+        # )
+    endif()
     message(STATUS "clang-format targets available: 'format', 'check-format'")
 endif()

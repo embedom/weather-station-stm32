@@ -14,14 +14,9 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-
 /******************************** CONSTEXPR **********************************/
 
-
-
 /********************************* TYPEDEFS **********************************/
-
-
 
 /*********************************** CLASS ***********************************/
 
@@ -48,12 +43,12 @@ class GenericTask
         configASSERT(TaskConfig.TaskControlBlock != nullptr);
 
         _TaskHandle = xTaskCreateStatic(&GenericTask::taskEntry,
-                        TaskConfig.TaskName,
-                        TaskConfig.StackSizeWords,
-                        this,
-                        TaskConfig.Priority,
-                        TaskConfig.StackBuffer,
-                        TaskConfig.TaskControlBlock);
+                                        TaskConfig.TaskName,
+                                        TaskConfig.StackSizeWords,
+                                        this,
+                                        TaskConfig.Priority,
+                                        TaskConfig.StackBuffer,
+                                        TaskConfig.TaskControlBlock);
 
         configASSERT(_TaskHandle != nullptr);
     }
@@ -64,7 +59,7 @@ class GenericTask
 
     private:
     TaskHandle_t _TaskHandle = nullptr;
-    
+
     static void taskEntry(void *Arg)
     {
         GenericTask *TaskInstance = static_cast<GenericTask *>(Arg);

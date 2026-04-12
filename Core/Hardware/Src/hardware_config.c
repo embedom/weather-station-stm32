@@ -7,7 +7,6 @@
  ******************************************************************************
  */
 
-
 /********************************* INCLUDES **********************************/
 
 #include <stdio.h>
@@ -35,8 +34,6 @@
 
 /********************************* TYPEDEFS **********************************/
 
-
-
 /********************************* FUNCTIONS *********************************/
 
 void HAL_MspInit(void)
@@ -48,8 +45,8 @@ void HAL_MspInit(void)
 
 HW_Status_t HW_systemClockConfig(void)
 {
-    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+    RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
+    RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
     /* Configure the main internal regulator output voltage */
     __HAL_RCC_PWR_CLK_ENABLE();
     __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
@@ -66,27 +63,25 @@ HW_Status_t HW_systemClockConfig(void)
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
 
-    RCC_OscInitStruct.PLL.PLLM = 25;   // 25 MHz / 25 = 1 MHz
-    RCC_OscInitStruct.PLL.PLLN = 432;  // 1 MHz * 432 = 432 MHz
-    RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;  // 432 / 2 = 216 MHz
+    RCC_OscInitStruct.PLL.PLLM = 25;            // 25 MHz / 25 = 1 MHz
+    RCC_OscInitStruct.PLL.PLLN = 432;           // 1 MHz * 432 = 432 MHz
+    RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2; // 432 / 2 = 216 MHz
     RCC_OscInitStruct.PLL.PLLQ = 9;
-    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+    if(HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
     {
         return HW_STATUS_ERROR;
     }
 
     /* Initializes the CPU, AHB and APB buses clocks */
-    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_SYSCLK |
-                                  RCC_CLOCKTYPE_HCLK   |
-                                  RCC_CLOCKTYPE_PCLK1  |
-                                  RCC_CLOCKTYPE_PCLK2;
+    RCC_ClkInitStruct.ClockType =
+        RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
 
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-    RCC_ClkInitStruct.AHBCLKDivider  = RCC_SYSCLK_DIV1;   // 216 MHz
-    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;     // 54 MHz
-    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;     // 108 MHz
+    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1; // 216 MHz
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;  // 54 MHz
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;  // 108 MHz
 
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) != HAL_OK)
+    if(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_7) != HAL_OK)
     {
         return HW_STATUS_ERROR;
     }
@@ -95,12 +90,12 @@ HW_Status_t HW_systemClockConfig(void)
 
 HW_Status_t HW_disableCache(void)
 {
-    if (SCB->CCR & SCB_CCR_DC_Msk)
+    if(SCB->CCR & SCB_CCR_DC_Msk)
     {
         SCB_DisableDCache();
     }
 
-    if (SCB->CCR & SCB_CCR_IC_Msk)
+    if(SCB->CCR & SCB_CCR_IC_Msk)
     {
         SCB_DisableICache();
     }
@@ -109,7 +104,7 @@ HW_Status_t HW_disableCache(void)
 
 HW_Status_t HW_MpuConfig(void)
 {
-    MPU_Region_InitTypeDef MPU_InitStruct = {0};
+    MPU_Region_InitTypeDef MPU_InitStruct = { 0 };
     /* Disables the MPU */
     HAL_MPU_Disable();
 
@@ -135,7 +130,8 @@ HW_Status_t HW_MpuConfig(void)
 /******************************* ETHERNET HW *********************************/
 
 HW_Status_t HW_ETH_Init(ETH_HandleTypeDef *EthHandle, ETH_TxPacketConfig *TxConfig,
-    ETH_DMADescTypeDef *DMATxDscrTab, ETH_DMADescTypeDef *DMARxDscrTab, uint8_t *MACAddr)
+                        ETH_DMADescTypeDef *DMATxDscrTab, ETH_DMADescTypeDef *DMARxDscrTab,
+                        uint8_t *MACAddr)
 {
     EthHandle->Instance = ETH;
     MACAddr[0] = 0x00;
@@ -150,11 +146,11 @@ HW_Status_t HW_ETH_Init(ETH_HandleTypeDef *EthHandle, ETH_TxPacketConfig *TxConf
     EthHandle->Init.RxDesc = DMARxDscrTab;
     EthHandle->Init.RxBuffLen = ETH_RX_BUF_SIZE;
 
-    memset(TxConfig, 0 , sizeof(ETH_TxPacketConfig));
+    memset(TxConfig, 0, sizeof(ETH_TxPacketConfig));
     TxConfig->Attributes = ETH_TX_PACKETS_FEATURES_CSUM | ETH_TX_PACKETS_FEATURES_CRCPAD;
     TxConfig->ChecksumCtrl = ETH_CHECKSUM_IPHDR_PAYLOAD_INSERT_PHDR_CALC;
     TxConfig->CRCPadCtrl = ETH_CRC_PAD_INSERT;
-    
+
     if(HAL_ETH_Init(EthHandle) != HAL_OK)
     {
         return HW_STATUS_ERROR;
@@ -162,9 +158,10 @@ HW_Status_t HW_ETH_Init(ETH_HandleTypeDef *EthHandle, ETH_TxPacketConfig *TxConf
     return HW_STATUS_OK;
 }
 
-HW_Status_t HW_ETH_update_mac_config(ETH_HandleTypeDef *EthHandle, uint32_t DuplexMode, uint32_t Speed)
+HW_Status_t HW_ETH_update_mac_config(ETH_HandleTypeDef *EthHandle, uint32_t DuplexMode,
+                                     uint32_t Speed)
 {
-    ETH_MACConfigTypeDef MACConf = {0};
+    ETH_MACConfigTypeDef MACConf = { 0 };
     /* Get MAC Config MAC */
     if(HAL_ETH_GetMACConfig(EthHandle, &MACConf) != HAL_OK)
     {
@@ -185,9 +182,9 @@ HW_Status_t HW_ETH_update_mac_config(ETH_HandleTypeDef *EthHandle, uint32_t Dupl
     return HW_STATUS_OK;
 }
 
-void HAL_ETH_MspInit(ETH_HandleTypeDef* EthHandle)
+void HAL_ETH_MspInit(ETH_HandleTypeDef *EthHandle)
 {
-    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitTypeDef GPIO_InitStruct = { 0 };
     if(EthHandle->Instance == ETH)
     {
         /* Enable Peripheral clock */
@@ -196,21 +193,21 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* EthHandle)
         __HAL_RCC_GPIOC_CLK_ENABLE();
         __HAL_RCC_GPIOA_CLK_ENABLE();
 
-        GPIO_InitStruct.Pin = RMII_TXD1_Pin|RMII_TXD0_Pin|RMII_TX_EN_Pin;
+        GPIO_InitStruct.Pin = RMII_TXD1_Pin | RMII_TXD0_Pin | RMII_TX_EN_Pin;
         GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
         GPIO_InitStruct.Pull = GPIO_NOPULL;
         GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
         GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
         HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
-        GPIO_InitStruct.Pin = RMII_MDC_Pin|RMII_RXD0_Pin|RMII_RXD1_Pin;
+        GPIO_InitStruct.Pin = RMII_MDC_Pin | RMII_RXD0_Pin | RMII_RXD1_Pin;
         GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
         GPIO_InitStruct.Pull = GPIO_NOPULL;
         GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
         GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
         HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-        GPIO_InitStruct.Pin = RMII_REF_CLK_Pin|RMII_MDIO_Pin|RMII_CRS_DV_Pin;
+        GPIO_InitStruct.Pin = RMII_REF_CLK_Pin | RMII_MDIO_Pin | RMII_CRS_DV_Pin;
         GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
         GPIO_InitStruct.Pull = GPIO_NOPULL;
         GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -225,15 +222,15 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* EthHandle)
     }
 }
 
-void HAL_ETH_MspDeInit(ETH_HandleTypeDef* EthHandle)
+void HAL_ETH_MspDeInit(ETH_HandleTypeDef *EthHandle)
 {
     if(EthHandle->Instance == ETH)
     {
         /* Peripheral clock disable */
         __HAL_RCC_ETH_CLK_DISABLE();
-        HAL_GPIO_DeInit(GPIOG, RMII_TXD1_Pin|RMII_TXD0_Pin|RMII_TX_EN_Pin);
-        HAL_GPIO_DeInit(GPIOC, RMII_MDC_Pin|RMII_RXD0_Pin|RMII_RXD1_Pin);
-        HAL_GPIO_DeInit(GPIOA, RMII_REF_CLK_Pin|RMII_MDIO_Pin|RMII_CRS_DV_Pin);
+        HAL_GPIO_DeInit(GPIOG, RMII_TXD1_Pin | RMII_TXD0_Pin | RMII_TX_EN_Pin);
+        HAL_GPIO_DeInit(GPIOC, RMII_MDC_Pin | RMII_RXD0_Pin | RMII_RXD1_Pin);
+        HAL_GPIO_DeInit(GPIOA, RMII_REF_CLK_Pin | RMII_MDIO_Pin | RMII_CRS_DV_Pin);
         /* Peripheral interrupt Deinit*/
         HAL_NVIC_DisableIRQ(ETH_IRQn);
         HAL_NVIC_DisableIRQ(ETH_WKUP_IRQn);
@@ -242,11 +239,11 @@ void HAL_ETH_MspDeInit(ETH_HandleTypeDef* EthHandle)
 
 /******************************* DS18B20 HW **********************************/
 
-HW_Status_t HW_DS18B20_UartInit(UART_HandleTypeDef *UartHandle, DMA_HandleTypeDef *RxDmaHandle, 
-                                                        DMA_HandleTypeDef *TxDmaHandle)
+HW_Status_t HW_DS18B20_UartInit(UART_HandleTypeDef *UartHandle, DMA_HandleTypeDef *RxDmaHandle,
+                                DMA_HandleTypeDef *TxDmaHandle)
 {
     HAL_StatusTypeDef HalStatus = HAL_OK;
-    GPIO_InitTypeDef GpioInit = {0};
+    GPIO_InitTypeDef GpioInit = { 0 };
     __HAL_RCC_USART6_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
 
@@ -324,51 +321,51 @@ HW_Status_t HW_DS18B20_UartInit(UART_HandleTypeDef *UartHandle, DMA_HandleTypeDe
 }
 
 HW_Status_t HW_DS18B20_UartDeInit(UART_HandleTypeDef *UartHandle, DMA_HandleTypeDef *RxDmaHandle,
-                                                            DMA_HandleTypeDef *TxDmaHandle)
+                                  DMA_HandleTypeDef *TxDmaHandle)
 {
-	if (UartHandle->Instance == DS18B20_UART)
-	{
-		HAL_NVIC_DisableIRQ(DMA2_Stream2_IRQn);
-		HAL_NVIC_DisableIRQ(DMA2_Stream7_IRQn);
-		HAL_NVIC_DisableIRQ(USART6_IRQn);
-		HAL_DMA_DeInit(RxDmaHandle);
-		HAL_DMA_DeInit(TxDmaHandle);
-		HAL_GPIO_DeInit(GPIOC, GPIO_PIN_6 | GPIO_PIN_7);
-		__HAL_RCC_USART6_CLK_DISABLE();
-	}
-	return HW_STATUS_OK;
+    if(UartHandle->Instance == DS18B20_UART)
+    {
+        HAL_NVIC_DisableIRQ(DMA2_Stream2_IRQn);
+        HAL_NVIC_DisableIRQ(DMA2_Stream7_IRQn);
+        HAL_NVIC_DisableIRQ(USART6_IRQn);
+        HAL_DMA_DeInit(RxDmaHandle);
+        HAL_DMA_DeInit(TxDmaHandle);
+        HAL_GPIO_DeInit(GPIOC, GPIO_PIN_6 | GPIO_PIN_7);
+        __HAL_RCC_USART6_CLK_DISABLE();
+    }
+    return HW_STATUS_OK;
 }
 
 HW_Status_t HW_DS18B20_TimerInit(TIM_HandleTypeDef *TimerHandle)
 {
-	RCC_ClkInitTypeDef ClkConfig = {0};
-	uint32_t FlashLatency = 0U;
-	uint32_t TimClock = 0U;
+    RCC_ClkInitTypeDef ClkConfig = { 0 };
+    uint32_t FlashLatency = 0U;
+    uint32_t TimClock = 0U;
 
-	__HAL_RCC_TIM7_CLK_ENABLE();
-	HAL_RCC_GetClockConfig(&ClkConfig, &FlashLatency);
-	if(ClkConfig.APB1CLKDivider == RCC_HCLK_DIV1)
-	{
-		TimClock = HAL_RCC_GetPCLK1Freq();
-	}
-	else
-	{
-		TimClock = 2U * HAL_RCC_GetPCLK1Freq();
-	}
+    __HAL_RCC_TIM7_CLK_ENABLE();
+    HAL_RCC_GetClockConfig(&ClkConfig, &FlashLatency);
+    if(ClkConfig.APB1CLKDivider == RCC_HCLK_DIV1)
+    {
+        TimClock = HAL_RCC_GetPCLK1Freq();
+    }
+    else
+    {
+        TimClock = 2U * HAL_RCC_GetPCLK1Freq();
+    }
 
-	TimerHandle->Instance = TIM7;
-	TimerHandle->Init.Prescaler = (TimClock / 1000U) - 1U; // 1 kHz timer clock => 1 tick = 1 ms
-	TimerHandle->Init.CounterMode = TIM_COUNTERMODE_UP;
-	TimerHandle->Init.Period = 750U - 1U;
-	TimerHandle->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    TimerHandle->Instance = TIM7;
+    TimerHandle->Init.Prescaler = (TimClock / 1000U) - 1U; // 1 kHz timer clock => 1 tick = 1 ms
+    TimerHandle->Init.CounterMode = TIM_COUNTERMODE_UP;
+    TimerHandle->Init.Period = 750U - 1U;
+    TimerHandle->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
-	HAL_StatusTypeDef Status = HAL_TIM_Base_Init(TimerHandle);
-	if(Status != HAL_OK)
-	{
-		return HW_STATUS_ERROR;
-	}
-	HAL_NVIC_SetPriority(TIM7_IRQn, DS18B20_IRQ_PRIORITY, 0U);
-	HAL_NVIC_EnableIRQ(TIM7_IRQn);
+    HAL_StatusTypeDef Status = HAL_TIM_Base_Init(TimerHandle);
+    if(Status != HAL_OK)
+    {
+        return HW_STATUS_ERROR;
+    }
+    HAL_NVIC_SetPriority(TIM7_IRQn, DS18B20_IRQ_PRIORITY, 0U);
+    HAL_NVIC_EnableIRQ(TIM7_IRQn);
 
-	return HW_STATUS_OK;
+    return HW_STATUS_OK;
 }

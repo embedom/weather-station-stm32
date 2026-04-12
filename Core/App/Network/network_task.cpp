@@ -33,11 +33,9 @@ namespace Network
 
 /******************************** CONSTEXPR **********************************/
 
-
-
 /********************************** PUBLIC ***********************************/
 
-NetworkTask& NetworkTask::getInstance()
+NetworkTask &NetworkTask::getInstance()
 {
     static NetworkTask NetTaskInstance;
     return NetTaskInstance;
@@ -45,13 +43,11 @@ NetworkTask& NetworkTask::getInstance()
 
 void NetworkTask::initNetwork()
 {
-    const StaticTaskConfig TaskConfig = {
-        NETWORK_TASK_NAME,
-        NETWORK_STACK_SIZE_WORDS,
-        NETWORK_TASK_PRIORITY,
-        _TaskStack,
-        &_TaskControlBlock
-    };
+    const StaticTaskConfig TaskConfig = { NETWORK_TASK_NAME,
+                                          NETWORK_STACK_SIZE_WORDS,
+                                          NETWORK_TASK_PRIORITY,
+                                          _TaskStack,
+                                          &_TaskControlBlock };
     GenericTask::createStaticTask(TaskConfig);
 }
 
@@ -67,9 +63,9 @@ void NetworkTask::runCyclic()
     for(;;)
     {
         AppCom::TemperaturePayload Payload = {};
-        bool Received = _ItcManager.waitForMessage(AppCom::ItcChannel::Temperature,
-                                    &Payload, sizeof(Payload), pdMS_TO_TICKS(1000U));
-        
+        bool Received = _ItcManager.waitForMessage(
+            AppCom::ItcChannel::Temperature, &Payload, sizeof(Payload), pdMS_TO_TICKS(1000U));
+
         SEGGER_RTT_printf(0, "Network cycle: %d\n", LastTimeWake);
         if(Received)
         {
@@ -88,13 +84,13 @@ void NetworkTask::networkInit()
 
     // static IP address of the microcontroller
     ip4_addr_t IpAddress, Netmask, Gateway;
-    IP4_ADDR(&IpAddress, 192, 168, 1, 240);     // IP address
-    IP4_ADDR(&Netmask, 255, 255, 255, 0);       // netmask
-    IP4_ADDR(&Gateway, 192, 168, 1, 200);       // default gateway
+    IP4_ADDR(&IpAddress, 192, 168, 1, 240); // IP address
+    IP4_ADDR(&Netmask, 255, 255, 255, 0);   // netmask
+    IP4_ADDR(&Gateway, 192, 168, 1, 200);   // default gateway
 
     /* add network interface (in the context of tcpip thread) */
-    const err_t ErrStatus = netifapi_netif_add(&_NetworkInterface, &IpAddress, &Netmask,
-                                        &Gateway, nullptr, ethernetif_init, tcpip_input);
+    const err_t ErrStatus = netifapi_netif_add(
+        &_NetworkInterface, &IpAddress, &Netmask, &Gateway, nullptr, ethernetif_init, tcpip_input);
     if(ErrStatus != ERR_OK)
     {
         SEGGER_RTT_printf(0, "netif add failed error: %d\n", ErrStatus);

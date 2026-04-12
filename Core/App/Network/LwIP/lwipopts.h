@@ -114,7 +114,6 @@
 
 #define LWIP_DBG_TYPES_ON         (LWIP_DBG_ON|LWIP_DBG_TRACE|LWIP_DBG_STATE|LWIP_DBG_FRESH|LWIP_DBG_HALT)
 
-
 /* ---------- Memory options ---------- */
 /* MEM_ALIGNMENT: should be set to the alignment of the CPU for which
    lwIP is compiled. 4 byte alignment -> define MEM_ALIGNMENT to 4, 2
@@ -162,7 +161,6 @@ a lot of data that needs to be copied, this should be set high. */
 #define MEMP_NUM_TCPIP_MSG_API   16
 #define MEMP_NUM_TCPIP_MSG_INPKT 16
 
-
 /* ---------- Pbuf options ---------- */
 /* PBUF_POOL_SIZE: the number of buffers in the pbuf pool. */
 #define PBUF_POOL_SIZE          4
@@ -206,7 +204,6 @@ a lot of data that needs to be copied, this should be set high. */
 #define CHECKSUM_CHECK_ICMP6            1
 #endif
 
-
 /* ---------- TCP options ---------- */
 #define LWIP_TCP                1
 #define TCP_TTL                 255
@@ -216,7 +213,6 @@ a lot of data that needs to be copied, this should be set high. */
 #define LWIP_ALTCP_TLS          (LWIP_TCP)
 #define LWIP_ALTCP_TLS_MBEDTLS  (LWIP_TCP)
 #endif
-
 
 /* Controls if TCP should queue segments that arrive out of
    order. Define to 0 if your device is low on memory. */
@@ -254,12 +250,10 @@ a lot of data that needs to be copied, this should be set high. */
 #define DEFAULT_RAW_RECVMBOX_SIZE  8
 #define DEFAULT_ACCEPTMBOX_SIZE    8
 
-
 /* ---------- ARP options ---------- */
 #define LWIP_ARP                1
 #define ARP_TABLE_SIZE          10
 #define ARP_QUEUEING            1
-
 
 /* ---------- IP options ---------- */
 /* Define IP_FORWARD to 1 if you wish to have the ability to forward
@@ -278,7 +272,6 @@ a lot of data that needs to be copied, this should be set high. */
 /* ---------- ICMP options ---------- */
 #define ICMP_TTL                255
 
-
 /* ---------- DHCP options ---------- */
 /* Define LWIP_DHCP to 1 if you want DHCP configuration of
    interfaces. */
@@ -288,21 +281,17 @@ a lot of data that needs to be copied, this should be set high. */
    (recommended). */
 #define DHCP_DOES_ARP_CHECK    (LWIP_DHCP)
 
-
 /* ---------- AUTOIP options ------- */
 #define LWIP_AUTOIP            (LWIP_DHCP)
 #define LWIP_DHCP_AUTOIP_COOP  (LWIP_DHCP && LWIP_AUTOIP)
-
 
 /* ---------- UDP options ---------- */
 #define LWIP_UDP                1
 #define LWIP_UDPLITE            LWIP_UDP
 #define UDP_TTL                 255
 
-
 /* ---------- RAW options ---------- */
 #define LWIP_RAW                1
-
 
 /* ---------- Statistics options ---------- */
 
@@ -333,7 +322,6 @@ a lot of data that needs to be copied, this should be set high. */
 #if PPP_SUPPORT
 
 #define NUM_PPP                 1      /* Max PPP sessions. */
-
 
 /* Select modules to enable.  Ideally these would be set in the makefile but
  * we're limited by the command line length so you need to modify the settings

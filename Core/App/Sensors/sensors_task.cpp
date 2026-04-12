@@ -23,15 +23,11 @@ namespace Sensor
 
 /******************************** CONSTEXPR **********************************/
 
-
-
 /********************************* TYPEDEFS **********************************/
-
-
 
 /********************************** PUBLIC ***********************************/
 
-SensorsTask& SensorsTask::getInstance()
+SensorsTask &SensorsTask::getInstance()
 {
     static SensorsTask SensorsTaskInstance;
     return SensorsTaskInstance;
@@ -39,12 +35,11 @@ SensorsTask& SensorsTask::getInstance()
 
 void SensorsTask::initSensors()
 {
-    const StaticTaskConfig TaskConfig = {
-        SENSOR_TASK_NAME,
-        SENSOR_STACK_SIZE_WORDS,
-        SENSOR_TASK_PRIORITY,
-        _TaskStack,
-        &_TaskControlBlock};
+    const StaticTaskConfig TaskConfig = { SENSOR_TASK_NAME,
+                                          SENSOR_STACK_SIZE_WORDS,
+                                          SENSOR_TASK_PRIORITY,
+                                          _TaskStack,
+                                          &_TaskControlBlock };
 
     GenericTask::createStaticTask(TaskConfig);
 }
@@ -81,6 +76,5 @@ void SensorsTask::runCyclic()
 }
 
 /********************************* PRIVATE ***********************************/
-
 
 } // namespace Sensor
