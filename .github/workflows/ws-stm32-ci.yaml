@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 env:
   PROJECT_NAME: weather-station
   MAJOR_VERSION: "1"
@@ -84,9 +88,8 @@ jobs:
 
   release:
     needs: build
-    runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/release'
-
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout (needed for tagging)
         uses: actions/checkout@v6
