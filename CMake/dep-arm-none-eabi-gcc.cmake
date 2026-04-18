@@ -6,14 +6,19 @@ set(CMAKE_CXX_COMPILER_FORCED TRUE)
 set(CMAKE_C_COMPILER_ID GNU)
 set(CMAKE_CXX_COMPILER_ID GNU)
 
-# Some default GCC settings
-# Use ARM_TOOLCHAIN_PATH env var or find in PATH
-if(DEFINED ENV{ARM_TOOLCHAIN_PATH})
-    set(TOOLCHAIN_PREFIX    $ENV{ARM_TOOLCHAIN_PATH}/arm-none-eabi-)
+# ARM_TOOLCHAIN_VERSION is set by dep-tools-toolchain.cmake
+set(_TOOLS_TOOLCHAIN_BIN "${CMAKE_SOURCE_DIR}/Tools/arm-none-eabi/${ARM_TOOLCHAIN_VERSION}/bin")
+
+# Resolve toolchain prefix: bootstrapped path > env var > PATH
+if(EXISTS "${_TOOLS_TOOLCHAIN_BIN}/arm-none-eabi-gcc")
+    set(TOOLCHAIN_PREFIX "${_TOOLS_TOOLCHAIN_BIN}/arm-none-eabi-")
+elseif(DEFINED ENV{ARM_TOOLCHAIN_PATH})
+    set(TOOLCHAIN_PREFIX "$ENV{ARM_TOOLCHAIN_PATH}/arm-none-eabi-")
 else()
-    set(TOOLCHAIN_PREFIX    arm-none-eabi-)
+    set(TOOLCHAIN_PREFIX "arm-none-eabi-")
 endif()
 
+# Some default GCC settings
 set(CMAKE_C_COMPILER                ${TOOLCHAIN_PREFIX}gcc)
 set(CMAKE_ASM_COMPILER              ${CMAKE_C_COMPILER})
 set(CMAKE_CXX_COMPILER              ${TOOLCHAIN_PREFIX}g++)

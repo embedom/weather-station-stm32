@@ -6,52 +6,69 @@ option(ENABLE_CLANG_FORMAT "Run clang-format during build" ON)
 option(CLANG_FORMAT_ON_BUILD "Auto-format sources on every build" ON)
 
 set(CLANG_TOOLS_DIR "${CMAKE_SOURCE_DIR}/Tools")
-set(CLANG_TOOLS_ARCHIVE "${CMAKE_BINARY_DIR}/_deps/clang-tools.tar.xz")
-
-set(CLANG_TOOLS_URL
-    "https://github.com/embedom/tools/releases/download/v22.1.3/clang-mac.tar.xz"
-    CACHE STRING "URL clang tar.xz"
-)
-
-set(CLANG_TOOLS_SHA256
-    "0e2d438062e347b302483101716d462e6863809a8b4543fa14460e69cfd1d0b7"
-    CACHE STRING "SHA256 of clang archive"
-)
+set(CLANG_TOOLS_ARCHIVE_NAME "clang-mac.tar.xz")
+set(CLANG_TOOLS_RELEASE_TAG "llvm-clang-tools-v22.1.3")
+set(CLANG_TOOLS_BASE_URL
+    "https://github.com/embedom/tools/releases/download/${CLANG_TOOLS_RELEASE_TAG}")
+set(CLANG_TOOLS_ARCHIVE "${CMAKE_BINARY_DIR}/_deps/${CLANG_TOOLS_ARCHIVE_NAME}")
 
 if(BOOTSTRAP_CLANG_TOOLS)
     # Only download/extract if clang-tidy or clang-format not already found
     if(NOT EXISTS "${CLANG_TOOLS_DIR}/clang/bin/clang-tidy" OR
         NOT EXISTS "${CLANG_TOOLS_DIR}/clang/bin/clang-format")
-        file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/_deps")
-        message(STATUS "Downloading clang tools from: ${CLANG_TOOLS_URL}")
 
-        set(
-            _download_args
-            "${CLANG_TOOLS_URL}" "${CLANG_TOOLS_ARCHIVE}"
+        set(_deps_dir "${CMAKE_BINARY_DIR}/_deps")
+        set(_sha256sums_path "${_deps_dir}/clang-tools-SHA256SUMS")
+        file(MAKE_DIRECTORY "${_deps_dir}")
+
+        # 1. Download SHA256SUMS
+        message(STATUS "[clang-tools] Downloading SHA256SUMS ...")
+        file(DOWNLOAD
+            "${CLANG_TOOLS_BASE_URL}/SHA256SUMS"
+            "${_sha256sums_path}"
+            STATUS _sha_status
+            TLS_VERIFY ON
+        )
+        list(GET _sha_status 0 _sha_code)
+        if(NOT _sha_code EQUAL 0)
+            list(GET _sha_status 1 _sha_msg)
+            message(FATAL_ERROR
+                "[clang-tools] SHA256SUMS download failed: ${_sha_code} ${_sha_msg}")
+        endif()
+
+        # 2. Parse expected hash from SHA256SUMS
+        file(STRINGS "${_sha256sums_path}" _sha_line LIMIT_COUNT 1)
+        string(REGEX MATCH "^([a-fA-F0-9]+)" _hash_match "${_sha_line}")
+        set(_expected_hash "${CMAKE_MATCH_1}")
+
+        if("${_expected_hash}" STREQUAL "")
+            message(FATAL_ERROR "[clang-tools] Failed to parse hash from SHA256SUMS")
+        endif()
+        message(STATUS "[clang-tools] Expected SHA256: ${_expected_hash}")
+
+        # 3. Download archive (verified against SHA256SUMS)
+        message(STATUS "[clang-tools] Downloading ${CLANG_TOOLS_ARCHIVE_NAME} ...")
+        file(DOWNLOAD
+            "${CLANG_TOOLS_BASE_URL}/${CLANG_TOOLS_ARCHIVE_NAME}"
+            "${CLANG_TOOLS_ARCHIVE}"
             SHOW_PROGRESS
             STATUS _download_status
-            LOG _download_log
             TLS_VERIFY ON
-            EXPECTED_HASH "SHA256=${CLANG_TOOLS_SHA256}"
+            EXPECTED_HASH "SHA256=${_expected_hash}"
         )
-
-        file(DOWNLOAD ${_download_args})
         list(GET _download_status 0 _download_code)
-        list(GET _download_status 1 _download_msg)
-        set(_download_ok TRUE)
-
         if(NOT _download_code EQUAL 0)
-            set(_download_ok FALSE)
-            message(WARNING "clang tools download failed: \
-                ${_download_code} ${_download_msg}\n${_download_log}")
+            list(GET _download_status 1 _download_msg)
+            file(REMOVE "${CLANG_TOOLS_ARCHIVE}")
+            message(FATAL_ERROR
+                "[clang-tools] Archive download failed: ${_download_code} ${_download_msg}")
         endif()
 
-        if(_download_ok)
-            file(REMOVE_RECURSE "${CLANG_TOOLS_DIR}")
-            file(MAKE_DIRECTORY "${CLANG_TOOLS_DIR}")
-            file(ARCHIVE_EXTRACT INPUT "${CLANG_TOOLS_ARCHIVE}" DESTINATION "${CLANG_TOOLS_DIR}")
-            message(STATUS "Clang tools extracted to: ${CLANG_TOOLS_DIR}")
-        endif()
+        # 4. Extract archive to Tools/clang
+        file(REMOVE_RECURSE "${CLANG_TOOLS_DIR}/clang")
+        file(MAKE_DIRECTORY "${CLANG_TOOLS_DIR}")
+        file(ARCHIVE_EXTRACT INPUT "${CLANG_TOOLS_ARCHIVE}" DESTINATION "${CLANG_TOOLS_DIR}")
+        message(STATUS "[clang-tools] Extracted to: ${CLANG_TOOLS_DIR}/clang")
     endif()
 endif()
 

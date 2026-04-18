@@ -12,8 +12,14 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
+# Include toolchain download/bootstrapping
+include("CMake/dep-tools-toolchain.cmake")
+
 # Include toolchain file (must be before project() so compilers are set)
 include("CMake/dep-arm-none-eabi-gcc.cmake")
+
+# Optional bootstrap for clang-tidy/clang-format binaries.
+include("CMake/dep-tools-clang.cmake")
 
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
@@ -21,9 +27,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 # Core project settings
 project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
-
-# Optional bootstrap for clang-tidy/clang-format binaries.
-include("CMake/dep-tools-clang.cmake")
 
 # Enable CMake support for ASM, C and CPP languages
 enable_language(C ASM CXX)
