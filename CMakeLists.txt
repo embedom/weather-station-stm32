@@ -12,6 +12,9 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
+# Include Ninja build system bootstrapping
+include("CMake/dep-tools-ninja.cmake")
+
 # Include toolchain download/bootstrapping
 include("CMake/dep-tools-toolchain.cmake")
 

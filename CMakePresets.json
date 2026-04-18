@@ -29,6 +29,7 @@
             "name": "CI-Debug",
             "inherits": "Debug",
             "cacheVariables": {
+                "BOOTSTRAP_NINJA": "ON",
                 "BOOTSTRAP_CLANG_TOOLS": "OFF",
                 "ENABLE_CLANG_FORMAT": "OFF",
                 "ENABLE_CLANG_TIDY": "ON"
@@ -38,6 +39,7 @@
             "name": "CI-Release",
             "inherits": "Release",
             "cacheVariables": {
+                "BOOTSTRAP_NINJA": "ON",
                 "BOOTSTRAP_CLANG_TOOLS": "OFF",
                 "ENABLE_CLANG_FORMAT": "OFF",
                 "ENABLE_CLANG_TIDY": "OFF"
