@@ -31,7 +31,7 @@ constexpr char USER_AGENT_STRING[] = "weather-station-mcu-client/1.0";
 /**********************************************************/
 
 constexpr uint8_t SENSOR_TASK_PRIORITY = 2U;
-constexpr uint16_t SENSOR_STACK_SIZE_WORDS = 128U;
+constexpr uint16_t SENSOR_STACK_SIZE_WORDS = 256U;
 constexpr uint16_t SENSOR_TASK_CYCLE_TIME_MS = 2000U;
 constexpr const char *SENSOR_TASK_NAME = "Sensor com Task";
 

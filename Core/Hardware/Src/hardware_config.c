@@ -19,7 +19,8 @@
 /********************************* DEFINES ***********************************/
 
 #define ETH_IRQ_PRIORITY 5U
-#define DS18B20_IRQ_PRIORITY 6U
+#define BME280_IRQ_PRIORITY 6U
+#define DS18B20_IRQ_PRIORITY 7U
 
 /*********** RMII DEFINES ***********/
 #define RMII_TXD1_Pin GPIO_PIN_14
@@ -31,6 +32,9 @@
 #define RMII_MDIO_Pin GPIO_PIN_2
 #define RMII_RXD1_Pin GPIO_PIN_5
 #define RMII_CRS_DV_Pin GPIO_PIN_7
+
+/*********** BME280 SPI DEFINES ***********/
+#define BME280_CS_Pin GPIO_PIN_9
 
 /********************************* TYPEDEFS **********************************/
 
@@ -367,5 +371,147 @@ HW_Status_t HW_DS18B20_TimerInit(TIM_HandleTypeDef *TimerHandle)
     HAL_NVIC_SetPriority(TIM7_IRQn, DS18B20_IRQ_PRIORITY, 0U);
     HAL_NVIC_EnableIRQ(TIM7_IRQn);
 
+    return HW_STATUS_OK;
+}
+
+/**************************** BME280 Sensor HW *******************************/
+
+HW_Status_t HW_BME280_SpiInit(SPI_HandleTypeDef *SpiHandle, DMA_HandleTypeDef *RxDmaHandle,
+                              DMA_HandleTypeDef *TxDmaHandle)
+{
+    GPIO_InitTypeDef GpioInit = { 0 };
+    HAL_StatusTypeDef HalStatus = HAL_OK;
+    if((SpiHandle == NULL) || (RxDmaHandle == NULL) || (TxDmaHandle == NULL))
+    {
+        return HW_STATUS_ERROR;
+    }
+
+    __HAL_RCC_SPI2_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    __HAL_RCC_GPIOI_CLK_ENABLE();
+
+    GpioInit.Pin = BME280_CS_Pin;
+    GpioInit.Mode = GPIO_MODE_OUTPUT_PP;
+    GpioInit.Pull = GPIO_NOPULL;
+    GpioInit.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOB, &GpioInit);
+    HAL_GPIO_WritePin(GPIOB, BME280_CS_Pin, GPIO_PIN_SET);
+
+    GpioInit.Pin = GPIO_PIN_1;
+    GpioInit.Mode = GPIO_MODE_AF_PP;
+    GpioInit.Pull = GPIO_NOPULL;
+    GpioInit.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GpioInit.Alternate = GPIO_AF5_SPI2;
+    HAL_GPIO_Init(GPIOI, &GpioInit);
+
+    GpioInit.Pin = GPIO_PIN_14 | GPIO_PIN_15;
+    GpioInit.Mode = GPIO_MODE_AF_PP;
+    GpioInit.Pull = GPIO_NOPULL;
+    GpioInit.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GpioInit.Alternate = GPIO_AF5_SPI2;
+    HAL_GPIO_Init(GPIOB, &GpioInit);
+
+    SpiHandle->Instance = SPI2;
+    SpiHandle->Init.Mode = SPI_MODE_MASTER;
+    SpiHandle->Init.Direction = SPI_DIRECTION_2LINES;
+    SpiHandle->Init.DataSize = SPI_DATASIZE_8BIT;
+    SpiHandle->Init.CLKPolarity = SPI_POLARITY_LOW;
+    SpiHandle->Init.CLKPhase = SPI_PHASE_1EDGE;
+    SpiHandle->Init.NSS = SPI_NSS_SOFT;
+    SpiHandle->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+    SpiHandle->Init.FirstBit = SPI_FIRSTBIT_MSB;
+    SpiHandle->Init.TIMode = SPI_TIMODE_DISABLE;
+    SpiHandle->Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+    SpiHandle->Init.CRCPolynomial = 7U;
+    SpiHandle->Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
+    SpiHandle->Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
+
+    if(HAL_SPI_Init(SpiHandle) != HAL_OK)
+    {
+        HAL_SPI_DeInit(SpiHandle);
+        __HAL_RCC_SPI2_CLK_DISABLE();
+        return HW_STATUS_ERROR;
+    }
+    __HAL_SPI_ENABLE(SpiHandle);
+
+    __HAL_RCC_DMA1_CLK_ENABLE();
+    RxDmaHandle->Instance = DMA1_Stream3;
+    RxDmaHandle->Init.Channel = DMA_CHANNEL_0;
+    RxDmaHandle->Init.Direction = DMA_PERIPH_TO_MEMORY;
+    RxDmaHandle->Init.PeriphInc = DMA_PINC_DISABLE;
+    RxDmaHandle->Init.MemInc = DMA_MINC_ENABLE;
+    RxDmaHandle->Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    RxDmaHandle->Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+    RxDmaHandle->Init.Mode = DMA_NORMAL;
+    RxDmaHandle->Init.Priority = DMA_PRIORITY_HIGH;
+    RxDmaHandle->Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+
+    TxDmaHandle->Instance = DMA1_Stream4;
+    TxDmaHandle->Init.Channel = DMA_CHANNEL_0;
+    TxDmaHandle->Init.Direction = DMA_MEMORY_TO_PERIPH;
+    TxDmaHandle->Init.PeriphInc = DMA_PINC_DISABLE;
+    TxDmaHandle->Init.MemInc = DMA_MINC_ENABLE;
+    TxDmaHandle->Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+    TxDmaHandle->Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+    TxDmaHandle->Init.Mode = DMA_NORMAL;
+    TxDmaHandle->Init.Priority = DMA_PRIORITY_HIGH;
+    TxDmaHandle->Init.FIFOMode = DMA_FIFOMODE_DISABLE;
+
+    HalStatus = HAL_DMA_Init(RxDmaHandle);
+    if(HalStatus == HAL_OK)
+    {
+        HalStatus = HAL_DMA_Init(TxDmaHandle);
+    }
+
+    if(HalStatus != HAL_OK)
+    {
+        HAL_DMA_DeInit(RxDmaHandle);
+        HAL_DMA_DeInit(TxDmaHandle);
+        HAL_SPI_DeInit(SpiHandle);
+        HAL_GPIO_DeInit(GPIOI, GPIO_PIN_1);
+        HAL_GPIO_DeInit(GPIOB, GPIO_PIN_14 | GPIO_PIN_15);
+        HAL_GPIO_DeInit(GPIOB, BME280_CS_Pin);
+        __HAL_RCC_SPI2_CLK_DISABLE();
+        return HW_STATUS_ERROR;
+    }
+    __HAL_LINKDMA(SpiHandle, hdmarx, *RxDmaHandle);
+    __HAL_LINKDMA(SpiHandle, hdmatx, *TxDmaHandle);
+    HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, BME280_IRQ_PRIORITY, 0U);
+    HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
+
+    HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, BME280_IRQ_PRIORITY, 0U);
+    HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
+
+    HAL_NVIC_SetPriority(SPI2_IRQn, BME280_IRQ_PRIORITY, 0U);
+    HAL_NVIC_EnableIRQ(SPI2_IRQn);
+    return HW_STATUS_OK;
+}
+
+HW_Status_t HW_BME280_SpiDeInit(SPI_HandleTypeDef *SpiHandle, DMA_HandleTypeDef *RxDmaHandle,
+                                DMA_HandleTypeDef *TxDmaHandle)
+{
+    if(SpiHandle == NULL)
+    {
+        return HW_STATUS_ERROR;
+    }
+
+    if(SpiHandle->Instance == SPI2)
+    {
+        HAL_NVIC_DisableIRQ(DMA1_Stream3_IRQn);
+        HAL_NVIC_DisableIRQ(DMA1_Stream4_IRQn);
+        HAL_NVIC_DisableIRQ(SPI2_IRQn);
+
+        if(HAL_SPI_DeInit(SpiHandle) != HAL_OK)
+        {
+            return HW_STATUS_ERROR;
+        }
+
+        HAL_GPIO_DeInit(GPIOI, GPIO_PIN_1);
+        HAL_GPIO_DeInit(GPIOB, GPIO_PIN_14 | GPIO_PIN_15);
+        HAL_GPIO_DeInit(GPIOB, BME280_CS_Pin);
+        HAL_DMA_DeInit(RxDmaHandle);
+        HAL_DMA_DeInit(TxDmaHandle);
+        __HAL_RCC_SPI2_CLK_DISABLE();
+    }
     return HW_STATUS_OK;
 }

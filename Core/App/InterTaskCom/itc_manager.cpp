@@ -85,7 +85,7 @@ bool ItcManager::waitForMessage(ItcChannel Channel, void *DataOut, size_t DataOu
 
 bool ItcManager::isChannelValid(const ItcChannel Channel)
 {
-    return (Channel < ItcChannel::MaxNumber);
+    return (Channel < ItcChannel::MAX_DUMMY);
 }
 
 bool ItcManager::applyChannelConfig(const ChannelConfig &Config)

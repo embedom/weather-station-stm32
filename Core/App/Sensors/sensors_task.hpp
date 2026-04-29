@@ -16,6 +16,7 @@
 #include "app_config.hpp"
 #include "itc_manager.hpp"
 #include "ds18b20.hpp"
+#include "bme280_sensor.hpp"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -51,6 +52,7 @@ class SensorsTask : public GenericTask
     StaticTask_t _TaskControlBlock;
 
     DS18B20::DS18B20Sensor _DS18B20TempSensor = {};
+    BME280::Bme280Sensor _Bme280Sensor = {};
     AppCom::ItcManager &_ItcManager = AppCom::ItcManager::getInstance();
 
 }; //class SensorsTask
