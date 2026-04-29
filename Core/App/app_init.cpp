@@ -33,8 +33,8 @@ constexpr uint8_t ITC_CHANNEL_COUNT = 2U;
 static StaticQueue_t ITC_TEMP_QUEUE_CONTROL = {};
 static uint8_t ITC_TEMPERATURE_STORAGE[sizeof(AppCom::DS18B20Payload)] = { 0U };
 
-static StaticQueue_t ITC_GENERIC1_QUEUE_CONTROL = {};
-static uint8_t ITC_GENERIC1_STORAGE[sizeof(uint32_t)] = { 0U };
+static StaticQueue_t ITC_BME280_QUEUE_CONTROL = {};
+static uint8_t ITC_BME280_STORAGE[sizeof(AppCom::Bme280Payload)] = { 0U };
 
 /********************************* FUNCTIONS *********************************/
 
@@ -70,18 +70,18 @@ AppStatus initialize(void)
     SEGGER_RTT_Init();
 
     const AppCom::ChannelConfig ItcChannelsConfig[ITC_CHANNEL_COUNT] = {
-        { .Channel = AppCom::ItcChannel::Temperature,
+        { .Channel = AppCom::ItcChannel::DS18B20,
           .PayloadSize = sizeof(AppCom::DS18B20Payload),
           .QueueLength = 1U,
           .QueueStorageBuffer = ITC_TEMPERATURE_STORAGE,
           .QueueStorageBufferSize = sizeof(ITC_TEMPERATURE_STORAGE),
           .QueueControlBlock = &ITC_TEMP_QUEUE_CONTROL },
-        { .Channel = AppCom::ItcChannel::Generic1,
-          .PayloadSize = sizeof(uint32_t),
+        { .Channel = AppCom::ItcChannel::BME280,
+          .PayloadSize = sizeof(AppCom::Bme280Payload),
           .QueueLength = 1U,
-          .QueueStorageBuffer = ITC_GENERIC1_STORAGE,
-          .QueueStorageBufferSize = sizeof(ITC_GENERIC1_STORAGE),
-          .QueueControlBlock = &ITC_GENERIC1_QUEUE_CONTROL }
+          .QueueStorageBuffer = ITC_BME280_STORAGE,
+          .QueueStorageBufferSize = sizeof(ITC_BME280_STORAGE),
+          .QueueControlBlock = &ITC_BME280_QUEUE_CONTROL }
     };
 
     if(!AppCom::ItcManager::getInstance().initialize(ItcChannelsConfig, ITC_CHANNEL_COUNT))

@@ -24,8 +24,8 @@ set(HAL_SOURCES
     ${STM32F7xx_HAL_DIR_PATH}/Src/stm32f7xx_hal_pwr.c
     ${STM32F7xx_HAL_DIR_PATH}/Src/stm32f7xx_hal_pwr_ex.c
     ${STM32F7xx_HAL_DIR_PATH}/Src/stm32f7xx_hal.c
-    ${STM32F7xx_HAL_DIR_PATH}/Src/stm32f7xx_hal_i2c.c
-    ${STM32F7xx_HAL_DIR_PATH}/Src/stm32f7xx_hal_i2c_ex.c
+    ${STM32F7xx_HAL_DIR_PATH}/Src/stm32f7xx_hal_spi.c
+    ${STM32F7xx_HAL_DIR_PATH}/Src/stm32f7xx_hal_spi_ex.c
     ${STM32F7xx_HAL_DIR_PATH}/Src/stm32f7xx_hal_exti.c
     ${STM32F7xx_HAL_DIR_PATH}/Src/stm32f7xx_hal_eth.c
 )

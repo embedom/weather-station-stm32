@@ -101,6 +101,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${APP_PATH}/Network/WeatherStationApi
     ${APP_PATH}/Sensors
     ${APP_PATH}/Sensors/ds18b20
+    ${APP_PATH}/Sensors/bme280
 )
 
 set(CORE_SOURCES
@@ -134,6 +135,8 @@ set(NETWORK_SOURCES
 set(SENSORS_SOURCES
     ${APP_PATH}/Sensors/ds18b20/ds18b20.cpp
     ${APP_PATH}/Sensors/ds18b20/ds18b20_it.cpp
+    ${APP_PATH}/Sensors/bme280/bme280_sensor.cpp
+    ${APP_PATH}/Sensors/bme280/bme280_it.cpp
     ${APP_PATH}/Sensors/sensors_task.cpp
 )
 

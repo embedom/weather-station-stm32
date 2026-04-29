@@ -34,16 +34,25 @@ struct DS18B20Payload
     int16_t TempCeslius[NUMBER_OF_DS18B20_SENSORS] = { 0 };
 };
 
+struct Bme280Payload
+{
+    uint32_t Sequence = 0U;
+    TickType_t TimestampTicks = 0U;
+    int32_t Temperature = 0; // [°C]
+    uint32_t Humidity = 0U;  // [%RH]
+    uint32_t Pressure = 0U;  // [hPa] sea-level adjusted
+};
+
 enum class ItcChannel : uint8_t
 {
-    Temperature = 0U,
-    Generic1,
-    MaxNumber
+    DS18B20 = 0U,
+    BME280,
+    MAX_DUMMY
 };
 
 struct ChannelConfig
 {
-    ItcChannel Channel = ItcChannel::Temperature;
+    ItcChannel Channel = ItcChannel::DS18B20;
     size_t PayloadSize = 0U;
     UBaseType_t QueueLength = ITC_SINGLE_QUEUE_LENGTH;
     uint8_t *QueueStorageBuffer = nullptr;
@@ -83,7 +92,7 @@ class ItcManager
 
     ItcManager() = default;
     bool _Initialized = false;
-    std::array<ItcQueueSlot, static_cast<size_t>(ItcChannel::MaxNumber)> _Queues = {};
+    std::array<ItcQueueSlot, static_cast<size_t>(ItcChannel::MAX_DUMMY)> _Queues = {};
 
 }; // class ItcManager
 

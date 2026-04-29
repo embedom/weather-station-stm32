@@ -47,6 +47,12 @@ HW_Status_t HW_DS18B20_UartDeInit(UART_HandleTypeDef *UartHandle, DMA_HandleType
                                   DMA_HandleTypeDef *TxDmaHandle);
 
 HW_Status_t HW_DS18B20_TimerInit(TIM_HandleTypeDef *TimerHandle);
+
+HW_Status_t HW_BME280_SpiInit(SPI_HandleTypeDef *SpiHandle, DMA_HandleTypeDef *RxDmaHandle,
+                              DMA_HandleTypeDef *TxDmaHandle);
+HW_Status_t HW_BME280_SpiDeInit(SPI_HandleTypeDef *SpiHandle, DMA_HandleTypeDef *RxDmaHandle,
+                                DMA_HandleTypeDef *TxDmaHandle);
+
 HW_Status_t HW_systemClockConfig(void);
 HW_Status_t HW_disableCache(void);
 HW_Status_t HW_MpuConfig(void);
