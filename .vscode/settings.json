@@ -3,9 +3,6 @@
     "cmake.configureArgs": [
         "-DCMAKE_TOOLCHAIN_FILE=${workspaceFolder}/CMake/dep-arm-none-eabi-gcc.cmake"
     ],
-    "cmake.environment": {
-        "PATH": "/opt/homebrew/bin:${env:PATH}"
-    },
     "editor.formatOnSave": false,
     "[c]": {
         "editor.defaultFormatter": "ms-vscode.cpptools"

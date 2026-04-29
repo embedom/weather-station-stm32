@@ -4,7 +4,7 @@
         {
             "name": "STM32F7 Debug",
             "cwd": "${workspaceFolder}",
-            "executable": "${workspaceFolder}/build/stm32f7_sample.elf",
+            "executable": "${workspaceFolder}/build/weather-station.elf",
             "type": "cortex-debug",
             "request": "launch",
             "servertype": "openocd",
