@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include "hardware_config.h"
 #include "misc_compiler.h"
+#include "terminal.h"
 
 #include "network_task.hpp"
 #include "itc_manager.hpp"
@@ -25,8 +26,6 @@
 #include "netif/ethernet.h"
 #include "lwip/apps/http_client.h"
 #include "lwip/sockets.h"
-
-#include "SEGGER_RTT.h"
 
 namespace Network
 {
@@ -54,7 +53,7 @@ void NetworkTask::initNetwork()
 void NetworkTask::onTaskStartUp()
 {
     networkInit();
-    SEGGER_RTT_printf(0, "Network interface initialized\n");
+    TERMINAL_LOG_INFO("NetworkTask", "Network interface initialized successfully");
 }
 
 void NetworkTask::runCyclic()
@@ -66,7 +65,7 @@ void NetworkTask::runCyclic()
         bool Received = _ItcManager.waitForMessage(
             AppCom::ItcChannel::Temperature, &Payload, sizeof(Payload), pdMS_TO_TICKS(1000U));
 
-        SEGGER_RTT_printf(0, "Network cycle: %d\n", LastTimeWake);
+        TERMINAL_LOG_DEBUG("NetworkTask", "Network cycle: %d", LastTimeWake);
         if(Received)
         {
             // sendTemperaturePayload(Payload);
@@ -93,7 +92,7 @@ void NetworkTask::networkInit()
         &_NetworkInterface, &IpAddress, &Netmask, &Gateway, nullptr, ethernetif_init, tcpip_input);
     if(ErrStatus != ERR_OK)
     {
-        SEGGER_RTT_printf(0, "netif add failed error: %d\n", ErrStatus);
+        TERMINAL_LOG_ERROR("NetworkTask", "netif add failed error: %d", ErrStatus);
         DEBUG_BRKPT();
     }
     netifapi_netif_set_default(&_NetworkInterface);
