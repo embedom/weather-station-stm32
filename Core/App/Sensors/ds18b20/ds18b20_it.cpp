@@ -9,16 +9,13 @@
 
 /********************************* INCLUDES **********************************/
 
-#include <stdio.h>
-#include <stdint.h>
+#include <cstdint>
 #include "stm32f7xx_hal.h"
 #include "ds18b20.hpp"
 #include "hardware_config.h"
 
 namespace DS18B20
 {
-
-/******************************** CONSTEXPR **********************************/
 
 /***************************** PRIVATE VAR ***********************************/
 
@@ -66,7 +63,15 @@ extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if(huart->Instance == DS18B20_UART)
     {
-        CLASS_INSTANCE->handleTransactionComplete();
+        CLASS_INSTANCE->handleUartRxDmaComplete();
+    }
+}
+
+extern "C" void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+    if(huart->Instance == DS18B20_UART)
+    {
+        CLASS_INSTANCE->handleUartTxDmaComplete();
     }
 }
 

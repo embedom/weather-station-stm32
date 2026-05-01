@@ -31,7 +31,7 @@ struct TemperaturePayload
 {
     uint32_t Sequence = 0U;
     TickType_t TimestampTicks = 0U;
-    uint16_t TemperaturesRaw[NUMBER_OF_SENSORS] = { 0U };
+    int16_t TempCeslius[NUMBER_OF_DS18B20_SENSORS] = { 0 };
 };
 
 enum class ItcChannel : uint8_t

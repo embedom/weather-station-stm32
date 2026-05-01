@@ -354,9 +354,9 @@ HW_Status_t HW_DS18B20_TimerInit(TIM_HandleTypeDef *TimerHandle)
     }
 
     TimerHandle->Instance = TIM7;
-    TimerHandle->Init.Prescaler = (TimClock / 1000U) - 1U; // 1 kHz timer clock => 1 tick = 1 ms
+    TimerHandle->Init.Prescaler = (TimClock / 10000U) - 1U; // 10 kHz timer clock => 1 tick = 100 us
     TimerHandle->Init.CounterMode = TIM_COUNTERMODE_UP;
-    TimerHandle->Init.Period = 750U - 1U;
+    TimerHandle->Init.Period = (750U * 10U) - 1U;
     TimerHandle->Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
     HAL_StatusTypeDef Status = HAL_TIM_Base_Init(TimerHandle);
