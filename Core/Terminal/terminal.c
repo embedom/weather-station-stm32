@@ -54,7 +54,7 @@ void terminal_print(log_terminal_level_t Color, const char *Tag, const char *For
     va_list Args;
     va_start(Args, FormatString);
 
-    SEGGER_RTT_printf(0, "%s[%lu] [%s] - ", getTerminalLogColor(Color), getTerminalTimeMs(), Tag);
+    SEGGER_RTT_printf(0, "%s[%lu] - [%s] - ", getTerminalLogColor(Color), getTerminalTimeMs(), Tag);
     SEGGER_RTT_vprintf(0, FormatString, &Args);
     SEGGER_RTT_printf(0, LOG_TERMINAL_RESET_COLOR "\n");
     va_end(Args);

@@ -23,8 +23,11 @@ extern "C"
 #define LOG_LEVEL_INFO   3
 #define LOG_LEVEL_DEBUG  4
 
-/* Log level for terminal output */
+#ifdef NDEBUG
+#define LOG_LEVEL LOG_LEVEL_NONE
+#else
 #define LOG_LEVEL LOG_LEVEL_DEBUG
+#endif
 
     /********************************** DEFINES **********************************/
 

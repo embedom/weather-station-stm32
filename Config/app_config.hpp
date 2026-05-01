@@ -1,9 +1,9 @@
 /**
   *****************************************************************************
-  * @file        : app_tasks_config.hpp
+  * @file        : app_config.hpp
   * @author      : embedom
   * @date        : 2026-03-07
-  * @brief       : 
+  * @brief       : General application configuration header.
   *****************************************************************************
   */
 
@@ -11,7 +11,7 @@
 
 /********************************* INCLUDES **********************************/
 
-#include <stdint.h>
+#include <cstdint>
 
 /******************************** CONSTEXPR **********************************/
 
@@ -24,4 +24,11 @@ constexpr uint8_t SENSOR_TASK_PRIORITY = 2U;
 constexpr uint16_t SENSOR_STACK_SIZE_WORDS = 128U;
 constexpr uint16_t SENSOR_TASK_CYCLE_TIME_MS = 2000U;
 constexpr const char *SENSOR_TASK_NAME = "Sensor com Task";
-constexpr uint8_t NUMBER_OF_SENSORS = 2U;
+
+constexpr uint8_t NUMBER_OF_DS18B20_SENSORS = 1U;
+constexpr uint8_t NUMBER_OF_BME280_SENSORS = 1U;
+
+/************************* TYPEDEFS & ENUMS **********************************/
+
+/* If defined, enables ROM search functionality for DS18B20 sensors */
+// #define ENABLE_DS18B20_ROM_SEARCH

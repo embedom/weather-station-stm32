@@ -14,52 +14,55 @@
 #include "stm32f7xx_hal.h"
 #include "hardware_config.h"
 #include "ds18b20.hpp"
-#include "SEGGER_RTT.h"
+#include "terminal.h"
 
 namespace DS18B20
 {
 
 /******************************** CONSTEXPR **********************************/
 
-constexpr uint8_t RESET_FRAME_SIZE = 1U;
-constexpr uint8_t CMD_RESET = 0xF0U;
-constexpr uint8_t CMD_SKIP_ROM_INDEX = 0U;
-constexpr uint8_t CMD_READ_ROM_INDEX = 1U;
-constexpr uint8_t CMD_CONVERT_TEMP_INDEX = 2U;
-constexpr uint8_t CMD_READ_SCRATCHPAD_INDEX = 3U;
-constexpr uint8_t NUMBER_OF_COMMANDS = 4U;
+constexpr uint32_t RESET_BAUDRATE = 9600U;
+constexpr uint32_t DATA_BAUDRATE = 115200U;
+
+constexpr uint32_t CONVERT_TEMP_TIME_MS = 800U; /* Conversion time in milliseconds */
+
+constexpr uint8_t RESET_UART_FRAME_SIZE = 1U;
 
 constexpr uint8_t FULL_BYTE_HIGH = 0xFFU;
 constexpr uint8_t MAX_DEVICE_ID_BITS = 64U;
 constexpr uint8_t BITS_IN_BYTE = 0x08U;
-constexpr uint8_t HIGH_BIT_MASK = 0xF0U;
+constexpr uint8_t HIGH_BIT_THRESHOLD = 0xFFU;
 constexpr uint8_t LOW_BIT_MASK = 0x00U;
 constexpr uint8_t CRC_POLYNOMIAL = 0x8CU;
 
-constexpr uint8_t SENSOR_CMD_ENCODE_FRAMES[NUMBER_OF_COMMANDS][FRAME_SIZE] = {
+constexpr uint8_t CMD_RESET_BYTE = 0xF0U;
+constexpr uint8_t CMD_SKIP_ROM_INDEX = 0U;
+constexpr uint8_t CMD_READ_ROM_INDEX = 1U;
+constexpr uint8_t CMD_CONVERT_TEMP_INDEX = 2U;
+constexpr uint8_t CMD_READ_SCRATCHPAD_INDEX = 3U;
+constexpr uint8_t CMD_SEARCH_ROM_INDEX = 4U;
+constexpr uint8_t CMD_MATCH_ROM_INDEX = 5U;
+
+constexpr uint8_t SENSOR_CMD_ENCODE_FRAMES[][FRAME_SIZE] = {
     { 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF }, //0xCC - SKIP_ROM
     { 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00 }, //0x33 - READ_ROM
     { 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00 }, //0x44 - CONVERT_T
-    { 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0xFF }  //0xBE - READ_SCRATCH
+    { 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0xFF }, //0xBE - READ_SCRATCH
+#ifdef ENABLE_DS18B20_ROM_SEARCH
+    { 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF }, //0xF0 - SEARCH_ROM
+    { 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00 }  //0x55 - MATCH_ROM
+#endif
 };
 
-constexpr uint8_t DUMMY_READ_TX_FRAME[FRAME_SIZE] = {
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+/* Whole-scratchpad read: 9 DS18B20 bytes * 8 UART frames per bit = 72 dummy 0xFF. */
+constexpr uint8_t SCRATCHPAD_RX_FRAME_SIZE = static_cast<uint8_t>(SCRATCHPAD_SIZE) * FRAME_SIZE;
+constexpr uint8_t SCRATCHPAD_DUMMY_TX_FRAME[SCRATCHPAD_RX_FRAME_SIZE] = {
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
 };
-
-constexpr uint8_t CMD_SEARCH_ROM_FRAME[FRAME_SIZE] = {
-    0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF //0xF0 - SEARCH_ROM
-};
-
-constexpr uint32_t RESET_BAUDRATE = 9600U;
-constexpr uint32_t DATA_BAUDRATE = 115200U;
-
-constexpr uint32_t CONVERT_TEMP_TIME_MS = 800U;
-
-constexpr uint8_t CMD_MATCH_ROM = 0x55U;
-constexpr uint8_t CMD_SEARCH_ROM = 0xF0U;
-
-/********************************* TYPEDEFS **********************************/
 
 /********************************** PUBLIC ***********************************/
 
@@ -69,23 +72,30 @@ void DS18B20Sensor::initialize(void)
     {
         HW_Status_t Status = HW_STATUS_OK;
         Status = HW_DS18B20_UartInit(&_UartHandle, &_UartRxDmaHandle, &_UartTxDmaHandle);
-        if(Status != HW_STATUS_ERROR)
+        if(Status == HW_STATUS_ERROR)
         {
-            Status = HW_DS18B20_TimerInit(&_TimerHandle);
+            Error_Handler();
         }
 
-        if(Status != HW_STATUS_ERROR)
+        Status = HW_DS18B20_TimerInit(&_TimerHandle);
+        if(Status == HW_STATUS_ERROR)
         {
-            setInterruptCallbacksCfg(this, &_UartHandle, &_TimerHandle);
+            Error_Handler();
         }
 
+        setInterruptCallbacksCfg(this, &_UartHandle, &_TimerHandle);
         if(setUartBaudrate(RESET_BAUDRATE) != Status::OK)
         {
             Error_Handler();
         }
-        SEGGER_RTT_printf(0, "DS18B20 sensor initialized\n");
         _State = STATE_IDLE;
-        // startSearchRom();
+        TERMINAL_LOG_INFO("DS18B20", "Sensor initialized successfully");
+
+#ifdef ENABLE_DS18B20_ROM_SEARCH
+        startSearchRom();
+#else /* For single-sensor case, skip search and MATCH ROM frames. */
+        _NumSensorsFound = NUMBER_OF_DS18B20_SENSORS;
+#endif
     }
 }
 
@@ -101,9 +111,25 @@ void DS18B20Sensor::startMeasure(void)
     }
 }
 
-uint16_t DS18B20Sensor::getTemperature(uint8_t SensorIndex) const
+int16_t DS18B20Sensor::getTemperature(uint8_t SensorIndex) const
 {
-    return _LastTempRaw[SensorIndex];
+    return _LastTempCelsius[SensorIndex];
+}
+
+uint8_t DS18B20Sensor::getNumSensorsFound(void) const
+{
+    return _NumSensorsFound;
+}
+
+bool DS18B20Sensor::isSensorReady(void)
+{
+#ifdef ENABLE_DS18B20_ROM_SEARCH
+    if(_SearchState == SRCH_SEQ_COMPLETE)
+    {
+        processSearchComplete();
+    }
+#endif
+    return (_State == STATE_IDLE);
 }
 
 /********************************* PRIVATE ***********************************/
@@ -115,7 +141,7 @@ void DS18B20Sensor::handleTransactionComplete(void)
     {
     case STATE_RESET_FOR_CONVERT:
     {
-        if(_RxBuffer[0] == CMD_RESET)
+        if(_RxBuffer[0] == CMD_RESET_BYTE)
         {
             setErrorAndIdle();
             return;
@@ -146,7 +172,7 @@ void DS18B20Sensor::handleTransactionComplete(void)
     }
     case STATE_RESET_FOR_READ:
     {
-        if(_RxBuffer[0] == CMD_RESET)
+        if(_RxBuffer[0] == CMD_RESET_BYTE)
         {
             setErrorAndIdle();
             return;
@@ -157,10 +183,30 @@ void DS18B20Sensor::handleTransactionComplete(void)
             setErrorAndIdle();
             return;
         }
-        _State = STATE_MATCH_ROM_FOR_READ;
-        // Status = startDmaTransmitReceive(_MatchRomTxBuf[_CurrentSensorIndex], _RxBuffer, MATCH_ROM_FRAME_SIZE);
+#ifndef ENABLE_DS18B20_ROM_SEARCH
+        _State = STATE_SKIP_ROM_FOR_READ;
         Status = startDmaTransmitReceive(
             SENSOR_CMD_ENCODE_FRAMES[CMD_SKIP_ROM_INDEX], _RxBuffer, FRAME_SIZE);
+        break;
+    }
+    case STATE_SKIP_ROM_FOR_READ:
+    {
+        _State = STATE_READ_SCRATCH_CMD;
+        Status = startDmaTransmitReceive(
+            SENSOR_CMD_ENCODE_FRAMES[CMD_READ_SCRATCHPAD_INDEX], _RxBuffer, FRAME_SIZE);
+        break;
+    }
+#else
+        _State = STATE_SEND_MATCH_ROM_FOR_READ;
+        Status = startDmaTransmitReceive(
+            SENSOR_CMD_ENCODE_FRAMES[CMD_MATCH_ROM_INDEX], _RxBuffer, FRAME_SIZE);
+        break;
+    }
+    case STATE_SEND_MATCH_ROM_FOR_READ:
+    {
+        _State = STATE_MATCH_ROM_FOR_READ;
+        Status = startDmaTransmitReceive(
+            _MatchRomTxBuf[_CurrentSensorIndex], _RxBuffer, (ROM_CODE_SIZE * FRAME_SIZE));
         break;
     }
     case STATE_MATCH_ROM_FOR_READ:
@@ -170,63 +216,89 @@ void DS18B20Sensor::handleTransactionComplete(void)
             SENSOR_CMD_ENCODE_FRAMES[CMD_READ_SCRATCHPAD_INDEX], _RxBuffer, FRAME_SIZE);
         break;
     }
+#endif
     case STATE_READ_SCRATCH_CMD:
     {
         _ScratchIndex = 0U;
-        _State = STATE_READ_BYTE;
-        Status = startDmaTransmitReceive(DUMMY_READ_TX_FRAME, _RxBuffer, FRAME_SIZE);
+        _State = STATE_READ_SCRATCH_CPLT;
+        Status =
+            startDmaTransmitReceive(SCRATCHPAD_DUMMY_TX_FRAME, _RxBuffer, SCRATCHPAD_RX_FRAME_SIZE);
         break;
     }
-    case STATE_READ_BYTE:
+    case STATE_READ_SCRATCH_CPLT:
     {
-        _Scratchpad[_ScratchIndex] = decodeByte(_RxBuffer);
-        _ScratchIndex++;
-
-        if(_ScratchIndex < SCRATCHPAD_SIZE)
+        /* Decode all 9 scratchpad bytes from the single 72-byte RX buffer. */
+        for(uint8_t Index = 0U; Index < SCRATCHPAD_SIZE; Index++)
         {
-            Status = startDmaTransmitReceive(DUMMY_READ_TX_FRAME, _RxBuffer, FRAME_SIZE);
+            _Scratchpad[Index] = decodeByte(&_RxBuffer[static_cast<uint16_t>(Index) * FRAME_SIZE]);
+        }
+
+        uint8_t ScratchpadCrcReadValue = _Scratchpad[SCRATCHPAD_SIZE - 1U];
+        uint8_t ScratchpadCrcCalculatedValue = calculateCrc(_Scratchpad, SCRATCHPAD_SIZE - 1U);
+        if(ScratchpadCrcCalculatedValue == ScratchpadCrcReadValue)
+        {
+            /* Scratchpad bytes 0..1 form a signed Q12.4 value (LSB = 1/16 C).
+                Convert to centi-degrees: raw * 100 / 16. */
+            const int16_t Raw = static_cast<int16_t>(
+                (static_cast<uint16_t>(_Scratchpad[1]) << BITS_IN_BYTE) | _Scratchpad[0]);
+            _LastTempCelsius[_CurrentSensorIndex] =
+                static_cast<int16_t>((static_cast<int32_t>(Raw) * 100) / 16); //NOLINT
         }
         else
         {
-            uint8_t ScratchpadCrcReadValue = _Scratchpad[SCRATCHPAD_SIZE - 1U];
-            if(calculateCrc(_Scratchpad, SCRATCHPAD_SIZE - 1U) == ScratchpadCrcReadValue)
-            {
-                _LastTempRaw[_CurrentSensorIndex] = static_cast<uint16_t>(
-                    (static_cast<uint16_t>(_Scratchpad[1]) << BITS_IN_BYTE) | _Scratchpad[0]);
-            }
-            else
-            {
-                _LastTempRaw[_CurrentSensorIndex] = INVALID_TEMP;
-            }
-            _CurrentSensorIndex++;
-            if(_CurrentSensorIndex < _NumSensorsFound)
-            {
-                if(startReadScratchpadSequence() != Status::OK)
-                {
-                    setErrorAndIdle();
-                }
-                return;
-            }
-            _State = STATE_IDLE;
-            return;
+            TERMINAL_LOG_ERROR("DS18B20", "CRC error for sensor %u", _CurrentSensorIndex);
+            _LastTempCelsius[_CurrentSensorIndex] = INVALID_TEMP;
         }
+#ifdef ENABLE_DS18B20_ROM_SEARCH
+        _CurrentSensorIndex++;
+        if(_CurrentSensorIndex < _NumSensorsFound)
+        {
+            Status = startReadScratchpadSequence();
+            break;
+        }
+#endif
+        _State = STATE_IDLE;
         break;
     }
+#ifdef ENABLE_DS18B20_ROM_SEARCH
     case STATE_SEARCHING:
     {
         handleSearchTransaction();
-        return;
+        break;
     }
+#endif
     default:
     {
-        setErrorAndIdle();
-        return;
+        Status = Status::ERROR;
+        break;
     }
     }
 
     if(Status != Status::OK)
     {
         setErrorAndIdle();
+    }
+}
+
+void DS18B20Sensor::handleUartRxDmaComplete(void)
+{
+    _UartRxDmaDone = true;
+    if(_UartTxDmaDone)
+    {
+        _UartRxDmaDone = false;
+        _UartTxDmaDone = false;
+        handleTransactionComplete();
+    }
+}
+
+void DS18B20Sensor::handleUartTxDmaComplete(void)
+{
+    _UartTxDmaDone = true;
+    if(_UartRxDmaDone)
+    {
+        _UartRxDmaDone = false;
+        _UartTxDmaDone = false;
+        handleTransactionComplete();
     }
 }
 
@@ -246,11 +318,13 @@ void DS18B20Sensor::handleConversionTimerElapsed(void)
 
 void DS18B20Sensor::handleUartError(void)
 {
+#ifdef ENABLE_DS18B20_ROM_SEARCH
     if(_State == STATE_SEARCHING)
     {
-        processSearchComplete();
-        return;
+        _SearchState = SRCH_SEQ_COMPLETE;
     }
+#endif
+    TERMINAL_LOG_ERROR("DS18B20", "UART error occurred");
     setErrorAndIdle();
 }
 
@@ -263,6 +337,8 @@ Status DS18B20Sensor::setUartBaudrate(uint32_t BaudRate)
 Status DS18B20Sensor::startDmaTransmitReceive(const uint8_t *TxBuffer, uint8_t *RxBuffer,
                                               uint16_t Length)
 {
+    __HAL_UART_DISABLE(&_UartHandle);
+    __HAL_UART_ENABLE(&_UartHandle);
     if(HAL_UART_Receive_DMA(&_UartHandle, RxBuffer, Length) != HAL_OK)
     {
         return Status::ERROR;
@@ -277,13 +353,13 @@ Status DS18B20Sensor::startDmaTransmitReceive(const uint8_t *TxBuffer, uint8_t *
 
 void DS18B20Sensor::setErrorAndIdle(void)
 {
-    HAL_TIM_Base_Stop_IT(&_TimerHandle);
-    for(uint8_t SensorIndex = 0U; SensorIndex < NUMBER_OF_SENSORS; SensorIndex++)
+    _UartRxDmaDone = false;
+    _UartTxDmaDone = false;
+    for(uint8_t SensorIndex = 0U; SensorIndex < NUMBER_OF_DS18B20_SENSORS; SensorIndex++)
     {
-        _LastTempRaw[SensorIndex] = INVALID_TEMP;
+        _LastTempCelsius[SensorIndex] = INVALID_TEMP;
     }
     _State = STATE_IDLE;
-    DEBUG_BRKPT();
 }
 
 Status DS18B20Sensor::startConversionSequence(void)
@@ -294,7 +370,7 @@ Status DS18B20Sensor::startConversionSequence(void)
         return Status::ERROR;
     }
     _State = STATE_RESET_FOR_CONVERT;
-    return startDmaTransmitReceive(&CMD_RESET, _RxBuffer, RESET_FRAME_SIZE);
+    return startDmaTransmitReceive(&CMD_RESET_BYTE, _RxBuffer, RESET_UART_FRAME_SIZE);
 }
 
 Status DS18B20Sensor::startReadScratchpadSequence(void)
@@ -305,13 +381,13 @@ Status DS18B20Sensor::startReadScratchpadSequence(void)
         return Status::ERROR;
     }
     _State = STATE_RESET_FOR_READ;
-    return startDmaTransmitReceive(&CMD_RESET, _RxBuffer, RESET_FRAME_SIZE);
+    return startDmaTransmitReceive(&CMD_RESET_BYTE, _RxBuffer, RESET_UART_FRAME_SIZE);
 }
 
 Status DS18B20Sensor::startConversionTempTimer(void)
 {
     __HAL_TIM_SET_COUNTER(&_TimerHandle, 0U);
-    __HAL_TIM_SET_AUTORELOAD(&_TimerHandle, CONVERT_TEMP_TIME_MS - 1U);
+    __HAL_TIM_SET_AUTORELOAD(&_TimerHandle, (CONVERT_TEMP_TIME_MS * 10U) - 1U);
     __HAL_TIM_CLEAR_IT(&_TimerHandle, TIM_IT_UPDATE);
     return HAL_TIM_Base_Start_IT(&_TimerHandle) == HAL_OK ? Status::OK : Status::ERROR;
 }
@@ -342,7 +418,7 @@ uint8_t DS18B20Sensor::decodeByte(const uint8_t *Frame)
     uint8_t Value = 0U;
     for(uint8_t Index = 0U; Index < FRAME_SIZE; ++Index)
     {
-        if(Frame[Index] > HIGH_BIT_MASK)
+        if(Frame[Index] >= HIGH_BIT_THRESHOLD)
         {
             Value |= static_cast<uint8_t>(1U << Index);
         }
@@ -352,33 +428,22 @@ uint8_t DS18B20Sensor::decodeByte(const uint8_t *Frame)
 
 void DS18B20Sensor::encodeByte(uint8_t Byte, uint8_t *Frame)
 {
-    for(uint8_t i = 0U; i < BITS_IN_BYTE; i++)
+    for(uint8_t Index = 0U; Index < BITS_IN_BYTE; Index++)
     {
-        Frame[i] = (Byte & (1U << i)) ? 0xFFU : 0x00U; //NOLINT
+        Frame[Index] = (Byte & (1U << Index)) ? 0xFFU : 0x00U; //NOLINT
     }
 }
 
+#ifdef ENABLE_DS18B20_ROM_SEARCH
 void DS18B20Sensor::encodeMatchRomFrames(void)
 {
     for(uint8_t Sensor = 0U; Sensor < _NumSensorsFound; Sensor++)
     {
-        encodeByte(CMD_MATCH_ROM, &_MatchRomTxBuf[Sensor][0]);
-        for(uint8_t i = 0U; i < ROM_CODE_SIZE; i++)
+        for(uint8_t Index = 0U; Index < ROM_CODE_SIZE; Index++)
         {
-            encodeByte(_RomCodes[Sensor][i],
-                       &_MatchRomTxBuf[Sensor][FRAME_SIZE + (i * FRAME_SIZE)]);
+            encodeByte(_RomCodes[Sensor][Index], &_MatchRomTxBuf[Sensor][(Index * FRAME_SIZE)]);
         }
     }
-}
-
-uint8_t DS18B20Sensor::getNumSensorsFound(void) const
-{
-    return _NumSensorsFound;
-}
-
-bool DS18B20Sensor::isSearchComplete(void) const
-{
-    return (_State != STATE_SEARCHING) && (_State != STATE_UNINITIALIZED);
 }
 
 void DS18B20Sensor::startSearchRom(void)
@@ -386,9 +451,9 @@ void DS18B20Sensor::startSearchRom(void)
     _NumSensorsFound = 0U;
     _SearchLastDiscrepancy = 0U;
     _SearchLastDeviceFlag = false;
-    for(uint8_t i = 0U; i < ROM_CODE_SIZE; i++)
+    for(uint8_t Index = 0U; Index < ROM_CODE_SIZE; Index++)
     {
-        _SearchRomCode[i] = 0U;
+        _SearchRomCode[Index] = 0U;
     }
     _State = STATE_SEARCHING;
 
@@ -409,30 +474,31 @@ Status DS18B20Sensor::startSearchNextPass(void)
     {
         return Status::ERROR;
     }
-    return startDmaTransmitReceive(&CMD_RESET, _RxBuffer, RESET_FRAME_SIZE);
+    return startDmaTransmitReceive(&CMD_RESET_BYTE, _RxBuffer, RESET_UART_FRAME_SIZE);
 }
 
 void DS18B20Sensor::handleSearchTransaction(void)
 {
     Status Status = Status::OK;
-
     switch(_SearchState)
     {
     case SRCH_RESET:
     {
-        if(_RxBuffer[0] == CMD_RESET)
+        if(_RxBuffer[0] == CMD_RESET_BYTE)
         {
-            processSearchComplete();
+            DEBUG_BRKPT();
             return;
         }
         Status = setUartBaudrate(DATA_BAUDRATE);
         if(Status != Status::OK)
         {
-            processSearchComplete();
+            setErrorAndIdle();
+            DEBUG_BRKPT();
             return;
         }
         _SearchState = SRCH_CMD;
-        Status = startDmaTransmitReceive(CMD_SEARCH_ROM_FRAME, _RxBuffer, FRAME_SIZE);
+        Status = startDmaTransmitReceive(
+            SENSOR_CMD_ENCODE_FRAMES[CMD_SEARCH_ROM_INDEX], _RxBuffer, FRAME_SIZE);
         break;
     }
     case SRCH_CMD:
@@ -447,13 +513,13 @@ void DS18B20Sensor::handleSearchTransaction(void)
     }
     case SRCH_READ_BITS:
     {
-        uint8_t IdBit = (_RxBuffer[0] > HIGH_BIT_MASK) ? 1U : 0U;
-        uint8_t CmpIdBit = (_RxBuffer[1] > HIGH_BIT_MASK) ? 1U : 0U;
+        uint8_t IdBit = (_RxBuffer[0] == HIGH_BIT_THRESHOLD) ? 1U : 0U;
+        uint8_t CmpIdBit = (_RxBuffer[1] == HIGH_BIT_THRESHOLD) ? 1U : 0U;
 
         if((IdBit == 1U) && (CmpIdBit == 1U))
         {
-            processSearchComplete();
-            return;
+            _SearchState = SRCH_SEQ_COMPLETE;
+            break;
         }
 
         uint8_t SearchDirection;
@@ -516,45 +582,47 @@ void DS18B20Sensor::handleSearchTransaction(void)
             if(calculateCrc(_SearchRomCode, ROM_CODE_SIZE - 1U) ==
                _SearchRomCode[ROM_CODE_SIZE - 1U])
             {
-                for(uint8_t i = 0U; i < ROM_CODE_SIZE; i++)
+                for(uint8_t Index = 0U; Index < ROM_CODE_SIZE; Index++)
                 {
-                    _RomCodes[_NumSensorsFound][i] = _SearchRomCode[i];
+                    _RomCodes[_NumSensorsFound][Index] = _SearchRomCode[Index];
                 }
                 _NumSensorsFound++;
 
-                if(!_SearchLastDeviceFlag && (_NumSensorsFound < NUMBER_OF_SENSORS))
+                if(!_SearchLastDeviceFlag && (_NumSensorsFound < NUMBER_OF_DS18B20_SENSORS))
                 {
                     Status = startSearchNextPass();
                 }
                 else
                 {
-                    processSearchComplete();
-                    return;
+                    _SearchState = SRCH_SEQ_COMPLETE;
+                    break;
                 }
             }
             else
             {
-                processSearchComplete();
-                return;
+                TERMINAL_LOG_ERROR("DS18B20", "Error CRC ROM search %d", _NumSensorsFound);
+                Status = Status::ERROR;
+                break;
             }
         }
         break;
     }
     default:
     {
-        processSearchComplete();
-        return;
+        Status = Status::ERROR;
+        break;
     }
     }
 
     if(Status != Status::OK)
     {
-        processSearchComplete();
+        _SearchState = SRCH_SEQ_COMPLETE;
     }
 }
 
 void DS18B20Sensor::processSearchComplete(void)
 {
+    TERMINAL_LOG_INFO("DS18B20", "ROM search complete, found %u sensor(s)", _NumSensorsFound);
     _SearchState = SRCH_IDLE;
     _State = STATE_IDLE;
     if(_NumSensorsFound > 0U)
@@ -562,5 +630,6 @@ void DS18B20Sensor::processSearchComplete(void)
         encodeMatchRomFrames();
     }
 }
+#endif
 
 } //namespace DS18B20

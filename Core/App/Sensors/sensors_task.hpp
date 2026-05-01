@@ -50,7 +50,7 @@ class SensorsTask : public GenericTask
     StackType_t _TaskStack[SENSOR_STACK_SIZE_WORDS];
     StaticTask_t _TaskControlBlock;
 
-    DS18B20::DS18B20Sensor _TemperatureSensor = {};
+    DS18B20::DS18B20Sensor _DS18B20TempSensor = {};
     AppCom::ItcManager &_ItcManager = AppCom::ItcManager::getInstance();
 
 }; //class SensorsTask

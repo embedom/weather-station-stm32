@@ -65,12 +65,11 @@ void NetworkTask::runCyclic()
         bool Received = _ItcManager.waitForMessage(
             AppCom::ItcChannel::Temperature, &Payload, sizeof(Payload), pdMS_TO_TICKS(1000U));
 
-        TERMINAL_LOG_DEBUG("NetworkTask", "Network cycle: %d", LastTimeWake);
         if(Received)
         {
             // sendTemperaturePayload(Payload);
         }
-        vTaskDelayUntil(&LastTimeWake, pdMS_TO_TICKS(NETWORK_TASK_CYCLE_TIME_MS)); // delay 10s
+        vTaskDelayUntil(&LastTimeWake, pdMS_TO_TICKS(NETWORK_TASK_CYCLE_TIME_MS));
     }
 }
 
