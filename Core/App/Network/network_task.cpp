@@ -24,13 +24,14 @@
 #include "lwip/netifapi.h"
 #include "lwip/dhcp.h"
 #include "netif/ethernet.h"
-#include "lwip/apps/http_client.h"
-#include "lwip/sockets.h"
 
 namespace Network
 {
 
 /******************************** CONSTEXPR **********************************/
+
+constexpr TickType_t NETWORK_LINK_POLL_INTERVAL_TICKS = pdMS_TO_TICKS(250U);
+constexpr TickType_t NETWORK_MESSAGE_WAIT_TICKS = pdMS_TO_TICKS(1000U);
 
 /********************************** PUBLIC ***********************************/
 
@@ -53,23 +54,30 @@ void NetworkTask::initNetwork()
 void NetworkTask::onTaskStartUp()
 {
     networkInit();
+    _WeatherStationApi.initialize();
     TERMINAL_LOG_INFO("NetworkTask", "Network interface initialized successfully");
 }
 
 void NetworkTask::runCyclic()
 {
-    TickType_t LastTimeWake = xTaskGetTickCount();
+    waitForNetworkLinkUp();
+
     for(;;)
     {
+        if(!isNetworkLinkUp())
+        {
+            TERMINAL_LOG_INFO("NetworkTask", "Network link down, waiting for cable");
+            waitForNetworkLinkUp();
+        }
+
         AppCom::TemperaturePayload Payload = {};
         bool Received = _ItcManager.waitForMessage(
-            AppCom::ItcChannel::Temperature, &Payload, sizeof(Payload), pdMS_TO_TICKS(1000U));
+            AppCom::ItcChannel::Temperature, &Payload, sizeof(Payload), NETWORK_MESSAGE_WAIT_TICKS);
 
         if(Received)
         {
-            // sendTemperaturePayload(Payload);
+            processTemperaturePayload(Payload);
         }
-        vTaskDelayUntil(&LastTimeWake, pdMS_TO_TICKS(NETWORK_TASK_CYCLE_TIME_MS));
     }
 }
 
@@ -82,9 +90,9 @@ void NetworkTask::networkInit()
 
     // static IP address of the microcontroller
     ip4_addr_t IpAddress, Netmask, Gateway;
-    IP4_ADDR(&IpAddress, 192, 168, 1, 240); // IP address
-    IP4_ADDR(&Netmask, 255, 255, 255, 0);   // netmask
-    IP4_ADDR(&Gateway, 192, 168, 1, 200);   // default gateway
+    ip4addr_aton(NETWORK_DEVICE_IP_ADDR, &IpAddress); // IP address
+    ip4addr_aton(NETWORK_DEVICE_NETMASK, &Netmask);   // netmask
+    ip4addr_aton(NETWORK_DEVICE_GATEWAY, &Gateway);   // default gateway
 
     /* add network interface (in the context of tcpip thread) */
     const err_t ErrStatus = netifapi_netif_add(
@@ -96,6 +104,45 @@ void NetworkTask::networkInit()
     }
     netifapi_netif_set_default(&_NetworkInterface);
     netifapi_netif_set_up(&_NetworkInterface);
+}
+
+void NetworkTask::waitForNetworkLinkUp()
+{
+    while(!isNetworkLinkUp())
+    {
+        vTaskDelay(NETWORK_LINK_POLL_INTERVAL_TICKS);
+    }
+    TERMINAL_LOG_INFO("NetworkTask", "Network link is up");
+}
+
+bool NetworkTask::isNetworkLinkUp()
+{
+    return netif_is_link_up(&_NetworkInterface);
+}
+
+void NetworkTask::processTemperaturePayload(const AppCom::TemperaturePayload &Payload)
+{
+    HttpResponse Response = {};
+    if(!_WeatherStationApi.sendTemperature(Payload, Response))
+    {
+        TERMINAL_LOG_ERROR("NetworkTask", "Temperature request failed to start");
+        return;
+    }
+
+    handleHttpResponse(Response);
+}
+
+void NetworkTask::handleHttpResponse(const HttpResponse &Response)
+{
+    if(Response.Status != HttpStatus::OK)
+    {
+        TERMINAL_LOG_ERROR("NetworkTask",
+                           "HTTP request failed, status: %u",
+                           static_cast<unsigned>(Response.Status));
+        return;
+    }
+
+    TERMINAL_LOG_INFO("NetworkTask", "HTTP response status code: %d", Response.StatusCode);
 }
 
 } //namespace Network

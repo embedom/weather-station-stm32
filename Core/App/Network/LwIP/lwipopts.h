@@ -67,6 +67,7 @@
 #define LWIP_COMPAT_SOCKETS        1
 #define LWIP_SO_RCVTIMEO           1
 #define LWIP_SO_RCVBUF             1
+#define LWIP_SO_SNDTIMEO           1
 
 #define LWIP_TCPIP_CORE_LOCKING    1
 #define LWIP_FREERTOS_CHECK_CORE_LOCKING 1
@@ -163,7 +164,7 @@ a lot of data that needs to be copied, this should be set high. */
 
 /* ---------- Pbuf options ---------- */
 /* PBUF_POOL_SIZE: the number of buffers in the pbuf pool. */
-#define PBUF_POOL_SIZE          4
+#define PBUF_POOL_SIZE          2
 
 /* PBUF_POOL_BUFSIZE: the size of each pbuf in the pbuf pool. */
 #define PBUF_POOL_BUFSIZE       1528U
