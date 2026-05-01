@@ -59,6 +59,7 @@ set(APP_PATH ${CMAKE_SOURCE_DIR}/Core/App)
 target_include_directories(${PROJECT_NAME} PUBLIC
     ${CMAKE_SOURCE_DIR}/Core/App
     ${CMAKE_SOURCE_DIR}/Core/Hardware/Inc
+    ${CMAKE_SOURCE_DIR}/Core/Terminal
     ${CMAKE_SOURCE_DIR}/Config
     ${CMAKE_SOURCE_DIR}/SeggerRTT
     ${APP_PATH}/Tasks
@@ -80,6 +81,7 @@ set(CORE_SOURCES
     ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/stm32f7xx_it.c
     ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/hal_tick_tim.c
     ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/syscalls.c
+    ${CMAKE_SOURCE_DIR}/Core/Terminal/terminal.c
     ${CMAKE_SOURCE_DIR}/SeggerRTT/SEGGER_RTT.c
     ${CMAKE_SOURCE_DIR}/SeggerRTT/SEGGER_RTT_printf.c
 )

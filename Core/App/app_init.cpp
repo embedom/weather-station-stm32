@@ -14,6 +14,7 @@
 #include "app_init.hpp"
 #include "misc_compiler.h"
 #include "hardware_config.h"
+#include "terminal.h"
 #include "SEGGER_RTT.h"
 
 #include "itc_manager.hpp"
@@ -85,7 +86,7 @@ AppStatus initialize(void)
 
     if(!AppCom::ItcManager::getInstance().initialize(ItcChannelsConfig, ITC_CHANNEL_COUNT))
     {
-        SEGGER_RTT_printf(0, "ITC init failed error\n");
+        TERMINAL_LOG_ERROR("AppInit", "ITC init failed");
         DEBUG_BRKPT();
         return AppStatus::ERROR;
     }
@@ -93,13 +94,13 @@ AppStatus initialize(void)
     Network::NetworkTask::getInstance().initNetwork();
     Sensor::SensorsTask::getInstance().initSensors();
 
-    SEGGER_RTT_printf(0, "App base init done\n");
+    TERMINAL_LOG_INFO("AppInit", "App base init done");
     return AppStatus::OK;
 }
 
 NORETURN void startOs(void)
 {
-    SEGGER_RTT_printf(0, "App base start OS\n");
+    TERMINAL_LOG_INFO("AppInit", "Starting OS scheduler");
     vTaskStartScheduler();
     /* vTaskStartScheduler should never return, if it does, it's an error */
     DEBUG_BRKPT();
