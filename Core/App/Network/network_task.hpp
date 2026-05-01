@@ -14,6 +14,8 @@
 #include "generic_task.hpp"
 #include "app_config.hpp"
 #include "itc_manager.hpp"
+#include "http_client.hpp"
+#include "weather_station_api.hpp"
 
 #include "FreeRTOS.h"
 #include "lwip/netif.h"
@@ -45,13 +47,18 @@ class NetworkTask : public GenericTask
     virtual void runCyclic() override final;
     virtual void onTaskStartUp() override final;
     void networkInit();
-    bool sendTemperaturePayload(const AppCom::TemperaturePayload &payload);
+    void waitForNetworkLinkUp();
+    bool isNetworkLinkUp();
+    void processTemperaturePayload(const AppCom::TemperaturePayload &Payload);
+    void handleHttpResponse(const HttpResponse &Response);
 
     StackType_t _TaskStack[NETWORK_STACK_SIZE_WORDS];
     StaticTask_t _TaskControlBlock;
 
     struct netif _NetworkInterface;
     AppCom::ItcManager &_ItcManager = AppCom::ItcManager::getInstance();
+
+    WeatherStationApi _WeatherStationApi = {};
 
 }; //class NetworkTask
 
