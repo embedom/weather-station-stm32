@@ -8,6 +8,7 @@
             "type": "cortex-debug",
             "request": "launch",
             "servertype": "openocd",
+            "gdbPath": "${workspaceFolder}/Tools/arm-none-eabi/15.2.rel1/bin/arm-none-eabi-gdb",
             "configFiles": ["Debug/openocd.cfg"],
             "interface": "swd",
             "device": "STM32F746NG",
