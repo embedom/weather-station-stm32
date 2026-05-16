@@ -5,9 +5,20 @@ option(ENABLE_CLANG_TIDY "Run clang-tidy during build" ON)
 option(ENABLE_CLANG_FORMAT "Run clang-format during build" ON)
 option(CLANG_FORMAT_ON_BUILD "Auto-format sources on every build" ON)
 
+set(CLANG_VERSION "22.1.3" CACHE STRING "Clang tools version")
+
+# Detect host platform for archive selection
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+    set(_host_string "mac")
+elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+    set(_host_string "linux")
+else()
+    message(FATAL_ERROR "[clang-tools] Unsupported host: ${CMAKE_HOST_SYSTEM_NAME}")
+endif()
+
 set(CLANG_TOOLS_DIR "${CMAKE_SOURCE_DIR}/Tools")
-set(CLANG_TOOLS_ARCHIVE_NAME "clang-mac.tar.xz")
-set(CLANG_TOOLS_RELEASE_TAG "llvm-clang-tools-v22.1.3")
+set(CLANG_TOOLS_ARCHIVE_NAME "clang-${_host_string}.tar.xz")
+set(CLANG_TOOLS_RELEASE_TAG "llvm-clang-tools-v${CLANG_VERSION}")
 set(CLANG_TOOLS_BASE_URL
     "https://github.com/embedom/tools/releases/download/${CLANG_TOOLS_RELEASE_TAG}")
 set(CLANG_TOOLS_ARCHIVE "${CMAKE_BINARY_DIR}/_deps/${CLANG_TOOLS_ARCHIVE_NAME}")
@@ -37,9 +48,15 @@ if(BOOTSTRAP_CLANG_TOOLS)
         endif()
 
         # 2. Parse expected hash from SHA256SUMS
-        file(STRINGS "${_sha256sums_path}" _sha_line LIMIT_COUNT 1)
-        string(REGEX MATCH "^([a-fA-F0-9]+)" _hash_match "${_sha_line}")
-        set(_expected_hash "${CMAKE_MATCH_1}")
+        file(STRINGS "${_sha256sums_path}" _sha_file_lines)
+        set(_expected_hash "")
+        foreach(_line IN LISTS _sha_file_lines)
+            if(_line MATCHES "${CLANG_TOOLS_ARCHIVE_NAME}")
+                string(REGEX MATCH "^([a-fA-F0-9]+)" _hash_match "${_line}")
+                set(_expected_hash "${CMAKE_MATCH_1}")
+                break()
+            endif()
+        endforeach()
 
         if("${_expected_hash}" STREQUAL "")
             message(FATAL_ERROR "[clang-tools] Failed to parse hash from SHA256SUMS")
