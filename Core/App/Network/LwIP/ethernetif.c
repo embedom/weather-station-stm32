@@ -401,6 +401,16 @@ static void ethernetif_input_thread(void *Argument)
 
 /******************************** INTERRUPTS *********************************/
 
+void ETH_IRQHandler(void)
+{
+    HAL_ETH_IRQHandler(&EthernetHandle);
+}
+
+void ETH_WKUP_IRQHandler(void)
+{
+    HAL_ETH_IRQHandler(&EthernetHandle);
+}
+
 void HAL_ETH_RxLinkCallback(void **pStart, void **pEnd, uint8_t *buff, uint16_t Length)
 {
     struct pbuf **ppStart = (struct pbuf **)pStart;

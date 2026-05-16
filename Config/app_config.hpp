@@ -17,7 +17,7 @@
 
 constexpr uint8_t NETWORK_TASK_PRIORITY = 4U;
 constexpr uint16_t NETWORK_STACK_SIZE_WORDS = 512U;
-constexpr uint16_t NETWORK_TASK_CYCLE_TIME_MS = 4000U;
+constexpr uint16_t NETWORK_TASK_CYCLE_TIME_MS = 10000U;
 constexpr const char *NETWORK_TASK_NAME = "Network Task";
 
 constexpr const char *NETWORK_DEVICE_IP_ADDR = "192.168.1.240";
