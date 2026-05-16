@@ -11,7 +11,9 @@
 
 #include <stdio.h>
 #include "weather_station_api.hpp"
+#include "weather_station_endpoints.hpp"
 #include "app_config.hpp"
+#include "terminal.h"
 
 namespace Network
 {
@@ -24,18 +26,25 @@ constexpr size_t TEMPERATURE_REQUEST_BODY_SIZE = 256U;
 
 bool WeatherStationApi::initialize()
 {
-    _HttpClient.init(HTTP_SERVER_HOST, HTTP_SERVER_PORT);
+    HttpStatus Status = _HttpClient.init(HTTP_SERVER_HOST, HTTP_SERVER_PORT);
+    if(Status != HttpStatus::OK)
+    {
+        TERMINAL_LOG_ERROR("WeatherStationApi",
+                           "HTTP client initialization failed, status: %u",
+                           static_cast<unsigned>(Status));
+        return false;
+    }
     return true;
 }
 
-bool WeatherStationApi::sendTemperature(const AppCom::TemperaturePayload &Payload,
-                                        HttpResponse &Response)
+bool WeatherStationApi::sendTemperatureDS18B20(const AppCom::TemperaturePayload &Payload,
+                                               HttpResponse &Response)
 {
     char RequestPath[HTTP_MAX_PATH_LEN] = {};
     char RequestBody[TEMPERATURE_REQUEST_BODY_SIZE] = {};
 
-    int Written =
-        snprintf(RequestPath, sizeof(RequestPath), "%s%s", API_BASE_PATH, TEMPERATURE_ENDPOINT);
+    int Written = snprintf(
+        RequestPath, sizeof(RequestPath), "%s%s", SENSORS_BASE_PATH, DS18B20_TEMP_ENDPOINT);
     if((Written <= 0) || (static_cast<size_t>(Written) >= sizeof(RequestPath)))
     {
         return false;
@@ -45,7 +54,7 @@ bool WeatherStationApi::sendTemperature(const AppCom::TemperaturePayload &Payloa
                        sizeof(RequestBody),
                        "{\"sequence\":%lu,"
                        "\"timestamp_ticks\":%lu,"
-                       "\"temperatures_centi_c\":[",
+                       "\"temperature_centi_c\":",
                        static_cast<unsigned long>(Payload.Sequence),
                        static_cast<unsigned long>(Payload.TimestampTicks));
 
@@ -55,21 +64,33 @@ bool WeatherStationApi::sendTemperature(const AppCom::TemperaturePayload &Payloa
     }
 
     size_t Offset = static_cast<size_t>(Written);
-    for(uint8_t SensorIndex = 0U; SensorIndex < NUMBER_OF_DS18B20_SENSORS; ++SensorIndex)
+    if(NUMBER_OF_DS18B20_SENSORS > 1U)
+    {
+        Written = snprintf(&RequestBody[Offset], sizeof(RequestBody) - Offset, "[");
+        Offset += static_cast<size_t>(Written);
+        for(uint8_t SensorIndex = 0U; SensorIndex < NUMBER_OF_DS18B20_SENSORS; ++SensorIndex)
+        {
+            Written = snprintf(&RequestBody[Offset],
+                               sizeof(RequestBody) - Offset,
+                               "%s%d",
+                               (SensorIndex == 0U) ? "" : ",",
+                               static_cast<int>(Payload.TempCeslius[SensorIndex]));
+            if((Written <= 0) || (static_cast<size_t>(Written) >= (sizeof(RequestBody) - Offset)))
+            {
+                return false;
+            }
+            Offset += static_cast<size_t>(Written);
+        }
+        Written = snprintf(&RequestBody[Offset], sizeof(RequestBody) - Offset, "]}");
+    }
+    else
     {
         Written = snprintf(&RequestBody[Offset],
                            sizeof(RequestBody) - Offset,
-                           "%s%d",
-                           (SensorIndex == 0U) ? "" : ",",
-                           static_cast<int>(Payload.TempCeslius[SensorIndex]));
-        if((Written <= 0) || (static_cast<size_t>(Written) >= (sizeof(RequestBody) - Offset)))
-        {
-            return false;
-        }
-        Offset += static_cast<size_t>(Written);
+                           "%d}",
+                           static_cast<int>(Payload.TempCeslius[0]));
     }
 
-    Written = snprintf(&RequestBody[Offset], sizeof(RequestBody) - Offset, "]}");
     if((Written <= 0) || (static_cast<size_t>(Written) >= (sizeof(RequestBody) - Offset)))
     {
         return false;

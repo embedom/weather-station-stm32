@@ -30,8 +30,9 @@ namespace Network
 
 /******************************** CONSTEXPR **********************************/
 
-constexpr TickType_t NETWORK_LINK_POLL_INTERVAL_TICKS = pdMS_TO_TICKS(250U);
-constexpr TickType_t NETWORK_MESSAGE_WAIT_TICKS = pdMS_TO_TICKS(1000U);
+constexpr TickType_t NETWORK_MESSAGE_WAIT_TICKS = pdMS_TO_TICKS(500U);
+constexpr TickType_t NETWORK_LINK_UP_WAIT_TIMEOUT_TICKS = pdMS_TO_TICKS(5000U);
+constexpr TickType_t NETWORK_CYCLE_TASK_TICKS = pdMS_TO_TICKS(NETWORK_TASK_CYCLE_TIME_MS);
 
 /********************************** PUBLIC ***********************************/
 
@@ -61,6 +62,7 @@ void NetworkTask::onTaskStartUp()
 void NetworkTask::runCyclic()
 {
     waitForNetworkLinkUp();
+    TickType_t LastTimeWake = xTaskGetTickCount();
 
     for(;;)
     {
@@ -78,6 +80,7 @@ void NetworkTask::runCyclic()
         {
             processTemperaturePayload(Payload);
         }
+        vTaskDelayUntil(&LastTimeWake, NETWORK_CYCLE_TASK_TICKS);
     }
 }
 
@@ -110,7 +113,7 @@ void NetworkTask::waitForNetworkLinkUp()
 {
     while(!isNetworkLinkUp())
     {
-        vTaskDelay(NETWORK_LINK_POLL_INTERVAL_TICKS);
+        vTaskDelay(NETWORK_LINK_UP_WAIT_TIMEOUT_TICKS);
     }
     TERMINAL_LOG_INFO("NetworkTask", "Network link is up");
 }
@@ -123,7 +126,11 @@ bool NetworkTask::isNetworkLinkUp()
 void NetworkTask::processTemperaturePayload(const AppCom::TemperaturePayload &Payload)
 {
     HttpResponse Response = {};
-    if(!_WeatherStationApi.sendTemperature(Payload, Response))
+    TERMINAL_LOG_INFO("NetworkTask",
+                      "Send temperature request, sequence: %lu, timestamp ticks: %lu",
+                      static_cast<unsigned long>(Payload.Sequence),
+                      static_cast<unsigned long>(Payload.TimestampTicks));
+    if(!_WeatherStationApi.sendTemperatureDS18B20(Payload, Response))
     {
         TERMINAL_LOG_ERROR("NetworkTask", "Temperature request failed to start");
         return;

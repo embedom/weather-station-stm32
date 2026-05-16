@@ -25,12 +25,10 @@ class WeatherStationApi
     WeatherStationApi() = default;
 
     bool initialize();
-    bool sendTemperature(const AppCom::TemperaturePayload &Payload, HttpResponse &Response);
+    bool sendTemperatureDS18B20(const AppCom::TemperaturePayload &Payload, HttpResponse &Response);
 
     private:
     void processResponseBody(const HttpResponse &Response);
-    static constexpr const char *API_BASE_PATH = "/api/weather-station/";
-    static constexpr const char *TEMPERATURE_ENDPOINT = "temperature";
 
     HttpClient _HttpClient;
 
