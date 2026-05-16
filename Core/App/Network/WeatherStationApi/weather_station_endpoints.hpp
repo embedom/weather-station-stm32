@@ -12,11 +12,11 @@
 namespace Network
 {
 
-    static constexpr const char *API_BASE_PATH = "/api/weather-station/";
-    static constexpr const char *API_CONFIG_PATH = "/api/weather-station/config/";
+static constexpr const char *API_BASE_PATH = "/api/weather-station/";
+static constexpr const char *API_CONFIG_PATH = "/api/weather-station/config/";
 
-    static constexpr const char *SENSORS_BASE_PATH = "/api/weather-station/sensors/";
-    static constexpr const char *DS18B20_TEMP_ENDPOINT = "ds18b20/temperature";
-    static constexpr const char *BME280_MEASUR_ENDPOINT = "bme280/measurements";
+static constexpr const char *SENSORS_BASE_PATH = "/api/weather-station/sensors/";
+static constexpr const char *DS18B20_TEMP_ENDPOINT = "ds18b20/temperature";
+static constexpr const char *BME280_MEASUR_ENDPOINT = "bme280/measurements";
 
-} // namespace ApiEndpoints
+} // namespace Network

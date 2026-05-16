@@ -100,10 +100,11 @@ if(BOOTSTRAP_ARM_TOOLCHAIN)
             set(_src_dir "${_extract_tmp}")
         endif()
 
+        file(REMOVE_RECURSE "${ARM_TOOLCHAIN_INSTALL_DIR}")
         file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/Tools/arm-none-eabi")
         file(RENAME "${_src_dir}" "${ARM_TOOLCHAIN_INSTALL_DIR}")
-
         file(REMOVE_RECURSE "${_extract_tmp}")
+
         message(STATUS "[arm-toolchain] Installed to ${ARM_TOOLCHAIN_INSTALL_DIR}")
     else()
         message(STATUS "[arm-toolchain] Found at ${ARM_TOOLCHAIN_INSTALL_DIR}")
