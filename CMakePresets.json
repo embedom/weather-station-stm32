@@ -30,7 +30,7 @@
             "inherits": "Debug",
             "cacheVariables": {
                 "BOOTSTRAP_NINJA": "ON",
-                "BOOTSTRAP_CLANG_TOOLS": "OFF",
+                "BOOTSTRAP_CLANG_TOOLS": "ON",
                 "ENABLE_CLANG_FORMAT": "OFF",
                 "ENABLE_CLANG_TIDY": "ON"
             }
