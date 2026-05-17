@@ -14,6 +14,7 @@
 #include "generic_task.hpp"
 #include "app_config.hpp"
 #include "itc_manager.hpp"
+#include "tcp_transport.hpp"
 #include "http_client.hpp"
 #include "weather_station_api.hpp"
 
@@ -41,15 +42,15 @@ class NetworkTask : public GenericTask
     void initNetwork();
 
     private:
-    NetworkTask() = default;
+    NetworkTask() : _Transport(), _HttpClient(_Transport), _WeatherStationApi(_HttpClient) {};
     ~NetworkTask() = default;
 
     virtual void runCyclic() override final;
     virtual void onTaskStartUp() override final;
-    void networkInit();
+    void networkStackInit();
     void waitForNetworkLinkUp();
     bool isNetworkLinkUp();
-    void processTemperaturePayload(const AppCom::TemperaturePayload &Payload);
+    void processTemperaturePayload(const AppCom::DS18B20Payload &Payload);
     void handleHttpResponse(const HttpResponse &Response);
 
     StackType_t _TaskStack[NETWORK_STACK_SIZE_WORDS];
@@ -58,7 +59,9 @@ class NetworkTask : public GenericTask
     struct netif _NetworkInterface;
     AppCom::ItcManager &_ItcManager = AppCom::ItcManager::getInstance();
 
-    WeatherStationApi _WeatherStationApi = {};
+    TcpTransport _Transport;
+    HttpClient _HttpClient;
+    WeatherStationApi _WeatherStationApi;
 
 }; //class NetworkTask
 

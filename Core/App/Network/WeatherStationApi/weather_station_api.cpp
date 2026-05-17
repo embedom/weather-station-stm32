@@ -21,12 +21,14 @@ namespace Network
 /******************************** CONSTEXPR **********************************/
 
 constexpr size_t TEMPERATURE_REQUEST_BODY_SIZE = 256U;
+constexpr char DS18B20_PAYLOAD_FORMAT[] =
+    "{\"sequence\":%lu,\"timestamp_ticks\":%lu,\"temperature_centi_c\":";
 
 /********************************** PUBLIC ***********************************/
 
 bool WeatherStationApi::initialize()
 {
-    HttpStatus Status = _HttpClient.init(HTTP_SERVER_HOST, HTTP_SERVER_PORT);
+    HttpStatus Status = _HttpClient.initialize(HTTP_SERVER_HOST, HTTP_SERVER_PORT);
     if(Status != HttpStatus::OK)
     {
         TERMINAL_LOG_ERROR("WeatherStationApi",
@@ -37,8 +39,8 @@ bool WeatherStationApi::initialize()
     return true;
 }
 
-bool WeatherStationApi::sendTemperatureDS18B20(const AppCom::TemperaturePayload &Payload,
-                                               HttpResponse &Response)
+bool WeatherStationApi::sendDS18B20Payload(const AppCom::DS18B20Payload &Payload,
+                                           HttpResponse &Response)
 {
     char RequestPath[HTTP_MAX_PATH_LEN] = {};
     char RequestBody[TEMPERATURE_REQUEST_BODY_SIZE] = {};
@@ -52,12 +54,9 @@ bool WeatherStationApi::sendTemperatureDS18B20(const AppCom::TemperaturePayload 
 
     Written = snprintf(RequestBody,
                        sizeof(RequestBody),
-                       "{\"sequence\":%lu,"
-                       "\"timestamp_ticks\":%lu,"
-                       "\"temperature_centi_c\":",
+                       DS18B20_PAYLOAD_FORMAT,
                        static_cast<unsigned long>(Payload.Sequence),
                        static_cast<unsigned long>(Payload.TimestampTicks));
-
     if((Written <= 0) || (static_cast<size_t>(Written) >= sizeof(RequestBody)))
     {
         return false;
@@ -96,12 +95,14 @@ bool WeatherStationApi::sendTemperatureDS18B20(const AppCom::TemperaturePayload 
         return false;
     }
 
-    bool PostResult = _HttpClient.post(RequestPath, RequestBody, Response);
-    if(PostResult)
+    size_t TotalBodyLen = Offset + static_cast<size_t>(Written);
+    HttpStatus PostResult =
+        _HttpClient.postRequest(RequestPath, RequestBody, TotalBodyLen, Response);
+    if(PostResult == HttpStatus::OK)
     {
         processResponseBody(Response);
     }
-    return PostResult;
+    return true;
 }
 
 void WeatherStationApi::processResponseBody(const HttpResponse &Response)

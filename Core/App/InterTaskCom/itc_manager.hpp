@@ -27,7 +27,7 @@ constexpr UBaseType_t ITC_SINGLE_QUEUE_LENGTH = 1U;
 
 /********************************* TYPEDEFS **********************************/
 
-struct TemperaturePayload
+struct DS18B20Payload
 {
     uint32_t Sequence = 0U;
     TickType_t TimestampTicks = 0U;

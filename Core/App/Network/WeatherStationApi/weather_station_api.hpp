@@ -11,8 +11,8 @@
 
 /********************************* INCLUDES **********************************/
 
-#include "http_client.hpp"
 #include "itc_manager.hpp"
+#include "http_client.hpp"
 
 namespace Network
 {
@@ -22,15 +22,15 @@ namespace Network
 class WeatherStationApi
 {
     public:
-    WeatherStationApi() = default;
+    WeatherStationApi(HttpClient &HttpClient) : _HttpClient(HttpClient) {};
 
     bool initialize();
-    bool sendTemperatureDS18B20(const AppCom::TemperaturePayload &Payload, HttpResponse &Response);
+    bool sendDS18B20Payload(const AppCom::DS18B20Payload &Payload, HttpResponse &Response);
 
     private:
     void processResponseBody(const HttpResponse &Response);
 
-    HttpClient _HttpClient;
+    HttpClient &_HttpClient;
 
 }; //class WeatherStationApi
 

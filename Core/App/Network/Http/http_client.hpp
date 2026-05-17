@@ -3,7 +3,7 @@
  * @file        : http_client.hpp
  * @author      : embedom
  * @date        : 2026-04-20
- * @brief       : Blocking HTTP/1.1 client (GET/POST) over lwIP sockets.
+ * @brief       : Blocking HTTP/1.1 client with Transport layer.
  ******************************************************************************
  */
 
@@ -14,6 +14,7 @@
 #include <array>
 #include <stddef.h>
 #include <cstdint>
+#include "transport.hpp"
 
 namespace Network
 {
@@ -25,17 +26,17 @@ constexpr size_t HTTP_MAX_PATH_LEN = 128U;
 constexpr size_t HTTP_MAX_BODY_LEN = 512U;
 constexpr size_t HTTP_MAX_REQUEST_HDR_LEN = 512U;
 constexpr size_t HTTP_MAX_RESPONSE_LEN = 1024U;
-constexpr uint32_t HTTP_SOCKET_TIMEOUT_MS = 5000U;
+constexpr uint32_t HTTP_DEFAULT_TIMEOUT_MS = 5000U;
 
 /********************************* TYPEDEFS **********************************/
 
 enum class HttpMethod : uint8_t
 {
-    HTTP_METHOD_GET,
-    HTTP_METHOD_POST,
-    HTTP_METHOD_PUT,
-    HTTP_METHOD_DELETE,
-    HTTP_METHOD_HEAD
+    GET_METHOD,
+    POST_METHOD,
+    PUT_METHOD,
+    DELETE_METHOD,
+    HEAD_METHOD
 };
 
 enum class HttpStatus : uint8_t
@@ -65,34 +66,55 @@ struct HttpResponse
 class HttpClient
 {
     public:
-    HttpClient() = default;
+    HttpClient(ITransport &Transport) : _Transport(Transport) {};
     ~HttpClient() = default;
     /**************************** Public Members *****************************/
 
     /**
      * @brief Initialize the client with the target endpoint.
-     * @param Host      Server hostname or dotted IPv4 (e.g. "192.168.1.100").
-     * @param Port      TCP port (e.g. 80, 8080).
+     * @param Host Server hostname or dotted IPv4 (e.g. "192.168.1.100").
+     * @param Port TCP port (e.g. 80, 8080).
      * @return OK on success, INVALID_ARGUMENT if arguments are invalid.
      */
-    HttpStatus init(const char *Host, uint16_t Port);
+    HttpStatus initialize(const char *Host, uint16_t Port);
 
     /**
-     * @brief Execute a blocking HTTP_METHOD_GET request.
-     * @param Path      Full HTTP path (e.g. "/api/weather-station/temperature").
-     * @param Response  Filled with the transport and HTTP response status.
-     * @return true if the request was executed, false if arguments/client state are invalid.
+     * @brief Execute a blocking GET_METHOD request.
+     * @param Path Full HTTP path (e.g. "/api/weather-station/temperature").
+     * @param Response Filled with the transport and HTTP response status.
+     * @return OK on success, INVALID_ARGUMENT if arguments are invalid.
      */
-    bool get(const char *Path, HttpResponse &Response);
+    HttpStatus getRequest(const char *Path, HttpResponse &Response);
 
     /**
-     * @brief Execute a blocking HTTP_METHOD_POST request with a JSON body.
-     * @param Path      Full HTTP path.
-     * @param JsonBody  Null-terminated JSON payload.
-     * @param Response  Filled with the transport and HTTP response status.
-     * @return true if the request was executed, false if arguments/client state are invalid.
+     * @brief Execute a blocking POST_METHOD request with body.
+     * @param Path Full HTTP path.
+     * @param RequestBody Null-terminated request payload.
+     * @param BodyLen Length of the request body in bytes.
+     * @param Response Filled with the transport and HTTP response status.
+     * @return OK on success, INVALID_ARGUMENT if arguments are invalid.
      */
-    bool post(const char *Path, const char *JsonBody, HttpResponse &Response);
+    HttpStatus postRequest(const char *Path, const char *RequestBody, size_t BodyLen,
+                           HttpResponse &Response);
+
+    /**
+    * @brief Execute a blocking PUT_METHOD request with body.
+    * @param Path Full HTTP path.
+    * @param RequestBody Null-terminated request payload.
+    * @param BodyLen Length of the request body in bytes.
+    * @param Response Filled with the transport and HTTP response status.
+    * @return OK on success, INVALID_ARGUMENT if arguments are invalid.
+    */
+    HttpStatus putRequest(const char *Path, const char *RequestBody, size_t BodyLen,
+                          HttpResponse &Response);
+
+    /**
+     * @brief Execute a blocking DELETE_METHOD request.
+     * @param Path Full HTTP path.
+     * @param Response Filled with the transport and HTTP response status.
+     * @return OK on success, INVALID_ARGUMENT if arguments are invalid.
+     */
+    HttpStatus deleteRequest(const char *Path, HttpResponse &Response);
 
     /**************************** Private Members ****************************/
     private:
@@ -100,27 +122,39 @@ class HttpClient
     {
         HttpMethod Method;
         char Path[HTTP_MAX_PATH_LEN];
+        size_t HeaderLength;
         const char *Body;
         size_t BodyLength;
     };
 
-    bool executeRequest(HttpMethod Method, const char *Path, const char *Body, size_t BodyLength,
-                        HttpResponse &Response);
+    HttpStatus executeRequest(HttpMethod Method, const char *Path, const char *Body,
+                              size_t BodyLength, HttpResponse &Response);
     HttpStatus prepareRequest(HttpMethod Method, const char *Path, const char *Body,
-                              size_t BodyLength, HttpRequest &Request) const;
-    void processRequest(const HttpRequest &Request, HttpResponse &Response);
-    HttpStatus openSocket(int &SocketDescriptor) const;
-    void configureSocketTimeouts(int SocketDescriptor) const;
-    bool buildRequestHeader(const HttpRequest &Request, size_t &OutLength);
-    bool sendRequest(int SocketDescriptor, const HttpRequest &Request, HttpStatus &Status);
-    bool sendAll(int SocketDescriptor, const char *Data, size_t Length) const;
-    bool receiveResponse(int SocketDescriptor, size_t &ResponseLength, HttpStatus &Status);
+                              size_t BodyLength, HttpRequest &Request);
+    HttpStatus processRequest(const HttpRequest &Request, HttpResponse &Response);
+    HttpStatus sendRequest(const HttpRequest &Request);
+    HttpStatus receiveResponse(size_t &ResponseLength);
+    HttpStatus buildRequestHeader(HttpRequest &Request);
+
+    enum class HttpHeaderParseStatus : uint8_t
+    {
+        INVALID_HTTP_VERSION,
+        INVALID_STATUS_CODE,
+        INVALID_HEADER_END,
+        INVALID_CONTENT_LENGTH,
+        INVALID_BODY_LENGTH,
+        INVALID_CONTENT_TYPE,
+        OK
+    };
+    HttpHeaderParseStatus parseHttpResponse(const char *ResponseBuffer, size_t ResponseLength,
+                                            HttpResponse &Response);
 
     bool _Initialized = false;
-    char _HostIpString[HTTP_MAX_HOST_LEN] = {};
+    char _HostIp[HTTP_MAX_HOST_LEN] = {};
     uint16_t _Port = 0U;
     std::array<char, HTTP_MAX_REQUEST_HDR_LEN> _RequestHeader = {};
     std::array<char, HTTP_MAX_RESPONSE_LEN> _ResponseBuffer = {};
+    ITransport &_Transport;
 
 }; //class HttpClient
 
