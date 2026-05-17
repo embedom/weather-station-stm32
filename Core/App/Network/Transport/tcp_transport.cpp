@@ -92,7 +92,7 @@ TransportStatus TcpTransport::receive(uint8_t *Buffer, size_t BufferSize, size_t
         return TransportStatus::INVALID_ARGUMENT;
     }
 
-    const ssize_t ReceivedLwip = lwip_recv(_SocketFd, Buffer, BufferSize - 1U, 0);
+    const ssize_t ReceivedLwip = lwip_recv(_SocketFd, Buffer, BufferSize, 0);
     if(ReceivedLwip < LWIP_RETURN_VALUE_OK)
     {
         return TransportStatus::RECEIVE_ERROR;

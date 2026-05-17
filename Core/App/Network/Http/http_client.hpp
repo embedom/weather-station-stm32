@@ -42,8 +42,8 @@ enum class HttpMethod : uint8_t
 enum class HttpStatus : uint8_t
 {
     OK, /* request completed, see StatusCode */
-    SOCKET_ERROR,
     CONNECT_ERROR,
+    DISCONNECT_ERROR,
     SEND_ERROR,
     RECEIVE_ERROR,
     RESPONSE_TOO_LONG,
@@ -127,14 +127,12 @@ class HttpClient
         size_t BodyLength;
     };
 
-    HttpStatus executeRequest(HttpMethod Method, const char *Path, const char *Body,
-                              size_t BodyLength, HttpResponse &Response);
-    HttpStatus prepareRequest(HttpMethod Method, const char *Path, const char *Body,
-                              size_t BodyLength, HttpRequest &Request);
-    HttpStatus processRequest(const HttpRequest &Request, HttpResponse &Response);
-    HttpStatus sendRequest(const HttpRequest &Request);
-    HttpStatus receiveResponse(size_t &ResponseLength);
-    HttpStatus buildRequestHeader(HttpRequest &Request);
+    enum class ReceiveDataState : uint8_t
+    {
+        NEED_MORE_DATA,
+        DATA_COMPLETE,
+        MALFORMED_RESPONSE
+    };
 
     enum class HttpHeaderParseStatus : uint8_t
     {
@@ -144,10 +142,25 @@ class HttpClient
         INVALID_CONTENT_LENGTH,
         INVALID_BODY_LENGTH,
         INVALID_CONTENT_TYPE,
+        DATA_NOT_RECEIVED,
         OK
     };
-    HttpHeaderParseStatus parseHttpResponse(const char *ResponseBuffer, size_t ResponseLength,
-                                            HttpResponse &Response);
+
+    HttpStatus executeRequest(HttpMethod Method, const char *Path, const char *Body,
+                              size_t BodyLength, HttpResponse &Response);
+    HttpStatus prepareRequest(HttpMethod Method, const char *Path, const char *Body,
+                              size_t BodyLength, HttpRequest &Request);
+    HttpStatus buildRequestHeader(HttpRequest &Request);
+    HttpStatus processRequest(const HttpRequest &Request, HttpResponse &Response);
+    HttpStatus sendRequest(const HttpRequest &Request);
+    HttpStatus receiveResponse(HttpResponse &Response, size_t &ResponseLength);
+    ReceiveDataState processReceivedData(size_t DataLength, HttpResponse &Response);
+    const char *findHeaderEnd(const char *ResponseBuffer, size_t ResponseLength);
+    HttpHeaderParseStatus checkResponseBodyComplete(HttpResponse &Response, size_t HeaderEndOffset,
+                                                    size_t ResponseLength);
+    HttpHeaderParseStatus validateHttpResponseHeaders(const char *ResponseBuffer,
+                                                      size_t ResponseLength,
+                                                      HttpResponse &Response);
 
     bool _Initialized = false;
     char _HostIp[HTTP_MAX_HOST_LEN] = {};
