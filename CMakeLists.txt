@@ -69,6 +69,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${APP_PATH}/Network/LwIP
     ${APP_PATH}/Network/LwIP/arch
     ${APP_PATH}/Network/Http
+    ${APP_PATH}/Network/Transport
     ${APP_PATH}/Network/WeatherStationApi
     ${APP_PATH}/Sensors
     ${APP_PATH}/Sensors/ds18b20
@@ -95,6 +96,7 @@ set(NETWORK_SOURCES
     ${APP_PATH}/Network/network_task.cpp
     ${APP_PATH}/Network/Http/http_client.cpp
     ${APP_PATH}/Network/Http/http_response_parser.cpp
+    ${APP_PATH}/Network/Transport/tcp_transport.cpp
     ${APP_PATH}/Network/WeatherStationApi/weather_station_api.cpp
 )
 
