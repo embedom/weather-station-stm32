@@ -58,7 +58,7 @@ void SensorsTask::runCyclic()
     {
         if(_DS18B20TempSensor.isSensorReady())
         {
-            AppCom::TemperaturePayload DS18B20Payload = {};
+            AppCom::DS18B20Payload DS18B20Payload = {};
             DS18B20Payload.Sequence = Sequence++;
             DS18B20Payload.TimestampTicks = xTaskGetTickCount();
             for(uint8_t SensorIndex = 0U; SensorIndex < NUMBER_OF_DS18B20_SENSORS; SensorIndex++)

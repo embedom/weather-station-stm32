@@ -3,7 +3,7 @@
  * @file        : http_client.cpp
  * @author      : embedom
  * @date        : 2026-04-20
- * @brief       : Blocking HTTP/1.1 client (GET/POST) over lwIP sockets.
+ * @brief       : Blocking HTTP/1.1 client with Transport layer.
  ******************************************************************************
  */
 
@@ -13,48 +13,29 @@
 #include <string.h>
 
 #include "SEGGER_RTT.h"
-#include "lwip/sockets.h"
-#include "lwip/inet.h"
-
 #include "app_config.hpp"
 #include "http_client.hpp"
-#include "http_response_parser.hpp"
 
 namespace Network
 {
 
 /******************************** CONSTEXPR **********************************/
 
-constexpr uint32_t MS_PER_SECOND = 1000U;
-constexpr uint32_t US_PER_MS = 1000U;
+static constexpr char HTTP_HEADER_FORMAT[] = "%s %s HTTP/1.1\r\n"
+                                             "Host: %s:%u\r\n"
+                                             "User-Agent: %s\r\n"
+                                             "Accept: application/json\r\n"
+                                             "Connection: close\r\n"
+                                             "\r\n";
 
-/********************************* TYPEDEFS **********************************/
-
-enum LwipEnumHelper
-{
-    LWIP_RETURN_VALUE_OK = 0,
-    LWIP_SOCKET_OK = 0,
-    LWIP_INVALID_SOCKET = -1,
-};
-
-class SocketGuard
-{
-    public:
-    explicit SocketGuard(int Socket) : _Socket(Socket) {}
-    ~SocketGuard()
-    {
-        if(_Socket >= 0)
-        {
-            (void)lwip_close(_Socket);
-        }
-    }
-
-    SocketGuard(const SocketGuard &) = delete;
-    SocketGuard &operator=(const SocketGuard &) = delete;
-
-    private:
-    int _Socket;
-};
+static constexpr char HTTP_HEADER_WITH_BODY_FORMAT[] = "%s %s HTTP/1.1\r\n"
+                                                       "Host: %s:%u\r\n"
+                                                       "User-Agent: %s\r\n"
+                                                       "Accept: application/json\r\n"
+                                                       "Connection: close\r\n"
+                                                       "Content-Type: application/json\r\n"
+                                                       "Content-Length: %u\r\n"
+                                                       "\r\n";
 
 /****************************** STATIC HELPER ********************************/
 
@@ -62,15 +43,15 @@ static constexpr const char *methodToString(HttpMethod Method)
 {
     switch(Method)
     {
-    case HttpMethod::HTTP_METHOD_GET:
+    case HttpMethod::GET_METHOD:
         return "GET";
-    case HttpMethod::HTTP_METHOD_POST:
+    case HttpMethod::POST_METHOD:
         return "POST";
-    case HttpMethod::HTTP_METHOD_PUT:
+    case HttpMethod::PUT_METHOD:
         return "PUT";
-    case HttpMethod::HTTP_METHOD_DELETE:
+    case HttpMethod::DELETE_METHOD:
         return "DELETE";
-    case HttpMethod::HTTP_METHOD_HEAD:
+    case HttpMethod::HEAD_METHOD:
         return "HEAD";
     }
     return "UNKNOWN";
@@ -78,7 +59,7 @@ static constexpr const char *methodToString(HttpMethod Method)
 
 /********************************** PUBLIC ***********************************/
 
-HttpStatus HttpClient::init(const char *Host, uint16_t Port)
+HttpStatus HttpClient::initialize(const char *Host, uint16_t Port)
 {
     if(_Initialized || (Host == nullptr) || (Port == 0U))
     {
@@ -91,53 +72,62 @@ HttpStatus HttpClient::init(const char *Host, uint16_t Port)
         return HttpStatus::INVALID_ARGUMENT;
     }
 
-    memcpy(_HostIpString, Host, HostLen + 1U); /* include null terminator */
+    memcpy(_HostIp, Host, HostLen + 1U); /* include null terminator */
     _Port = Port;
     _Initialized = true;
     return HttpStatus::OK;
 }
 
-bool HttpClient::get(const char *ApiPath, HttpResponse &Response)
+HttpStatus HttpClient::getRequest(const char *ApiPath, HttpResponse &Response)
 {
-    return executeRequest(HttpMethod::HTTP_METHOD_GET, ApiPath, nullptr, 0U, Response);
+    return executeRequest(HttpMethod::GET_METHOD, ApiPath, nullptr, 0U, Response);
 }
 
-bool HttpClient::post(const char *ApiPath, const char *JsonBody, HttpResponse &Response)
+HttpStatus HttpClient::postRequest(const char *ApiPath, const char *RequestBody, size_t BodyLen,
+                                   HttpResponse &Response)
 {
-    const size_t BodyLen = (JsonBody != nullptr) ? strlen(JsonBody) : 0U;
-    return executeRequest(HttpMethod::HTTP_METHOD_POST, ApiPath, JsonBody, BodyLen, Response);
+    return executeRequest(HttpMethod::POST_METHOD, ApiPath, RequestBody, BodyLen, Response);
+}
+
+HttpStatus HttpClient::putRequest(const char *ApiPath, const char *RequestBody, size_t BodyLen,
+                                  HttpResponse &Response)
+{
+    return executeRequest(HttpMethod::PUT_METHOD, ApiPath, RequestBody, BodyLen, Response);
+}
+
+HttpStatus HttpClient::deleteRequest(const char *ApiPath, HttpResponse &Response)
+{
+    return executeRequest(HttpMethod::DELETE_METHOD, ApiPath, nullptr, 0U, Response);
 }
 
 /********************************** PRIVATE **********************************/
 
-bool HttpClient::executeRequest(HttpMethod Method, const char *ApiPath, const char *Body,
-                                size_t BodyLength, HttpResponse &Response)
+HttpStatus HttpClient::executeRequest(HttpMethod Method, const char *ApiPath, const char *Body,
+                                      size_t BodyLength, HttpResponse &Response)
 {
-    HttpRequest Request = {};
-    if(prepareRequest(Method, ApiPath, Body, BodyLength, Request) != HttpStatus::OK)
+    HttpStatus Status = HttpStatus::INTERNAL_ERROR;
+    if(_Initialized && (ApiPath != nullptr))
     {
-        Response = {};
-        Response.Status = HttpStatus::INTERNAL_ERROR;
-        return false;
+        HttpRequest Request = {};
+        Status = prepareRequest(Method, ApiPath, Body, BodyLength, Request);
+        if(Status == HttpStatus::OK)
+        {
+            Status = processRequest(Request, Response);
+        }
+        Response.Status = Status;
     }
-
-    processRequest(Request, Response);
-    return true;
+    return Status;
 }
 
 HttpStatus HttpClient::prepareRequest(HttpMethod Method, const char *ApiPath, const char *Body,
-                                      size_t BodyLength, HttpRequest &Request) const
+                                      size_t BodyLength, HttpRequest &Request)
 {
-    if(!_Initialized || (ApiPath == nullptr))
-    {
-        return HttpStatus::INVALID_ARGUMENT;
-    }
+    HttpStatus Status = HttpStatus::OK;
     if((BodyLength >= HTTP_MAX_BODY_LEN) || ((BodyLength > 0U) && (Body == nullptr)))
     {
         return HttpStatus::INVALID_PARAMETER;
     }
 
-    Request = {};
     Request.Method = Method;
     Request.Body = Body;
     Request.BodyLength = BodyLength;
@@ -147,102 +137,117 @@ HttpStatus HttpClient::prepareRequest(HttpMethod Method, const char *ApiPath, co
     {
         return HttpStatus::INVALID_PARAMETER;
     }
-
     memcpy(Request.Path, ApiPath, PathLen + 1U); /* include null terminator */
-    return HttpStatus::OK;
+
+    Status = buildRequestHeader(Request);
+    return Status;
 }
 
-void HttpClient::processRequest(const HttpRequest &Request, HttpResponse &Response)
+HttpStatus HttpClient::processRequest(const HttpRequest &Request, HttpResponse &Response)
 {
     Response = {};
     Response.Status = HttpStatus::OK;
+    HttpStatus Status = HttpStatus::OK;
 
-    int SocketDescriptor = LWIP_INVALID_SOCKET;
-    HttpStatus Status = openSocket(SocketDescriptor);
+    TransportStatus ConStatus = _Transport.connect(_HostIp, _Port, HTTP_DEFAULT_TIMEOUT_MS);
+    if(ConStatus != TransportStatus::OK)
+    {
+        return HttpStatus::CONNECT_ERROR;
+    }
+
+    Status = sendRequest(Request);
     if(Status != HttpStatus::OK)
     {
-        Response.Status = Status;
-        return;
-    }
-    SocketGuard SockGuard(SocketDescriptor);
-
-    if(!sendRequest(SocketDescriptor, Request, Status))
-    {
-        Response.Status = Status;
-        return;
+        return Status;
     }
 
     size_t ResponseLength = 0U;
-    if(!receiveResponse(SocketDescriptor, ResponseLength, Status))
+    Status = receiveResponse(ResponseLength);
+    if(Status != HttpStatus::OK)
     {
-        Response.Status = Status;
-        return;
+        return Status;
     }
 
     if(parseHttpResponse(_ResponseBuffer.data(), ResponseLength, Response) !=
        HttpHeaderParseStatus::OK)
     {
-        Response.Status = HttpStatus::MALFORMED_RESPONSE;
-        return;
+        return HttpStatus::MALFORMED_RESPONSE;
     }
+    return Status;
 }
 
-HttpStatus HttpClient::openSocket(int &SocketDescriptor) const
+HttpStatus HttpClient::sendRequest(const HttpRequest &Request)
 {
-    /* DNS is disabled in this project */
-    struct sockaddr_in ServerAddr = {};
-    ServerAddr.sin_family = AF_INET;
-    ServerAddr.sin_port = lwip_htons(_Port);
-    if(inet_aton(_HostIpString, &ServerAddr.sin_addr) == LWIP_RETURN_VALUE_OK)
-    {
-        return HttpStatus::INVALID_PARAMETER;
-    }
+    HttpStatus Status = HttpStatus::OK;
 
-    SocketDescriptor = lwip_socket(AF_INET, SOCK_STREAM, 0);
-    if(SocketDescriptor < LWIP_SOCKET_OK)
+    TransportStatus SendStatus = _Transport.send(
+        reinterpret_cast<const uint8_t *>(_RequestHeader.data()), Request.HeaderLength);
+    if(SendStatus == TransportStatus::OK)
     {
-        return HttpStatus::SOCKET_ERROR;
+        if(Request.BodyLength > 0U)
+        {
+            SendStatus = _Transport.send(reinterpret_cast<const uint8_t *>(Request.Body),
+                                         Request.BodyLength);
+            if(SendStatus != TransportStatus::OK)
+            {
+                Status = HttpStatus::SEND_ERROR;
+            }
+        }
     }
-    configureSocketTimeouts(SocketDescriptor);
-
-    int ConnectResult = lwip_connect(
-        SocketDescriptor, reinterpret_cast<sockaddr *>(&ServerAddr), sizeof(ServerAddr));
-    if(ConnectResult < LWIP_RETURN_VALUE_OK)
+    else
     {
-        (void)lwip_close(SocketDescriptor);
-        SocketDescriptor = LWIP_INVALID_SOCKET;
-        return HttpStatus::CONNECT_ERROR;
+        Status = HttpStatus::SEND_ERROR;
     }
-    return HttpStatus::OK;
+    return Status;
 }
 
-void HttpClient::configureSocketTimeouts(int SocketDescriptor) const
+HttpStatus HttpClient::receiveResponse(size_t &ResponseLength)
 {
-    struct timeval TimeValue;
-    TimeValue.tv_sec = HTTP_SOCKET_TIMEOUT_MS / MS_PER_SECOND;
-    TimeValue.tv_usec = (HTTP_SOCKET_TIMEOUT_MS % MS_PER_SECOND) * US_PER_MS;
-    (void)lwip_setsockopt(SocketDescriptor, SOL_SOCKET, SO_RCVTIMEO, &TimeValue, sizeof(TimeValue));
-    (void)lwip_setsockopt(SocketDescriptor, SOL_SOCKET, SO_SNDTIMEO, &TimeValue, sizeof(TimeValue));
+    HttpStatus Status = HttpStatus::OK;
+    ResponseLength = 0U;
+    for(;;)
+    {
+        if(ResponseLength >= (sizeof(_ResponseBuffer) - 1U))
+        {
+            Status = HttpStatus::RESPONSE_TOO_LONG;
+            break;
+        }
+
+        size_t Received = 0;
+        TransportStatus RecStatus =
+            _Transport.receive(reinterpret_cast<uint8_t *>(_ResponseBuffer.data() + ResponseLength),
+                               sizeof(_ResponseBuffer) - 1U - ResponseLength,
+                               Received);
+
+        if(RecStatus != TransportStatus::OK)
+        {
+            Status = HttpStatus::RECEIVE_ERROR;
+            break;
+        }
+
+        if(Received == 0U)
+        {
+            _Transport.close() == TransportStatus::OK ? Status = HttpStatus::OK
+                                                      : Status = HttpStatus::INTERNAL_ERROR;
+            break;
+        }
+        ResponseLength += Received;
+    }
+    _ResponseBuffer[ResponseLength] = '\0';
+    return Status;
 }
 
-bool HttpClient::buildRequestHeader(const HttpRequest &Request, size_t &OutLength)
+HttpStatus HttpClient::buildRequestHeader(HttpRequest &Request)
 {
     int Written = 0;
-    if(Request.Method == HttpMethod::HTTP_METHOD_POST)
+    if((Request.Method == HttpMethod::POST_METHOD) || (Request.Method == HttpMethod::PUT_METHOD))
     {
         Written = snprintf(_RequestHeader.data(),
                            _RequestHeader.size(),
-                           "%s %s HTTP/1.1\r\n"
-                           "Host: %s:%u\r\n"
-                           "User-Agent: %s\r\n"
-                           "Accept: application/json\r\n"
-                           "Connection: close\r\n"
-                           "Content-Type: application/json\r\n"
-                           "Content-Length: %u\r\n"
-                           "\r\n",
-                           methodToString(HttpMethod::HTTP_METHOD_POST),
+                           HTTP_HEADER_WITH_BODY_FORMAT,
+                           methodToString(Request.Method),
                            Request.Path,
-                           _HostIpString,
+                           _HostIp,
                            _Port,
                            USER_AGENT_STRING,
                            static_cast<unsigned>(Request.BodyLength));
@@ -251,101 +256,21 @@ bool HttpClient::buildRequestHeader(const HttpRequest &Request, size_t &OutLengt
     {
         Written = snprintf(_RequestHeader.data(),
                            _RequestHeader.size(),
-                           "%s %s HTTP/1.1\r\n"
-                           "Host: %s:%u\r\n"
-                           "User-Agent: %s\r\n"
-                           "Accept: application/json\r\n"
-                           "Connection: close\r\n"
-                           "\r\n",
-                           methodToString(HttpMethod::HTTP_METHOD_GET),
+                           HTTP_HEADER_FORMAT,
+                           methodToString(Request.Method),
                            Request.Path,
-                           _HostIpString,
+                           _HostIp,
                            _Port,
                            USER_AGENT_STRING);
     }
 
     if((Written <= 0) || (static_cast<size_t>(Written) >= _RequestHeader.size()))
     {
-        OutLength = 0U;
-        return false;
+        Request.HeaderLength = 0U;
+        return HttpStatus::INTERNAL_ERROR;
     }
-    OutLength = static_cast<size_t>(Written);
-    return true;
-}
-
-bool HttpClient::sendRequest(int SocketDescriptor, const HttpRequest &Request, HttpStatus &Status)
-{
-    size_t HeaderLen = 0U;
-    if(!buildRequestHeader(Request, HeaderLen))
-    {
-        Status = HttpStatus::INTERNAL_ERROR;
-        return false;
-    }
-
-    if(!sendAll(SocketDescriptor, _RequestHeader.data(), HeaderLen))
-    {
-        Status = HttpStatus::SEND_ERROR;
-        return false;
-    }
-
-    if((Request.Method == HttpMethod::HTTP_METHOD_POST) && (Request.BodyLength > 0U))
-    {
-        if(!sendAll(SocketDescriptor, Request.Body, Request.BodyLength))
-        {
-            Status = HttpStatus::SEND_ERROR;
-            return false;
-        }
-    }
-
-    Status = HttpStatus::OK;
-    return true;
-}
-
-bool HttpClient::sendAll(int SocketDescriptor, const char *Data, size_t Length) const
-{
-    size_t SentTotal = 0U;
-    while(SentTotal < Length)
-    {
-        const int Sent = lwip_send(SocketDescriptor, &Data[SentTotal], Length - SentTotal, 0);
-        if(Sent <= 0)
-        {
-            return false;
-        }
-        SentTotal += static_cast<size_t>(Sent);
-    }
-    return true;
-}
-
-bool HttpClient::receiveResponse(int SocketDescriptor, size_t &ResponseLength, HttpStatus &Status)
-{
-    ResponseLength = 0U;
-    for(;;)
-    {
-        if(ResponseLength >= (sizeof(_ResponseBuffer) - 1U))
-        {
-            Status = HttpStatus::RESPONSE_TOO_LONG;
-            return false;
-        }
-
-        const int Received = lwip_recv(SocketDescriptor,
-                                       _ResponseBuffer.data() + ResponseLength,
-                                       _ResponseBuffer.size() - 1U - ResponseLength,
-                                       0);
-        if(Received < 0)
-        {
-            Status = HttpStatus::RECEIVE_ERROR;
-            return false;
-        }
-        if(Received == 0) /* Connection closed by peer - we send 'Connection: close' */
-        {
-            break;
-        }
-        ResponseLength += static_cast<size_t>(Received);
-    }
-
-    _ResponseBuffer[ResponseLength] = '\0';
-    Status = HttpStatus::OK;
-    return true;
+    Request.HeaderLength = static_cast<size_t>(Written);
+    return HttpStatus::OK;
 }
 
 } //namespace Network

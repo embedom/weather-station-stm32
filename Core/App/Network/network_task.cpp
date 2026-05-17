@@ -54,8 +54,12 @@ void NetworkTask::initNetwork()
 
 void NetworkTask::onTaskStartUp()
 {
-    networkInit();
-    _WeatherStationApi.initialize();
+    networkStackInit();
+    if(!_WeatherStationApi.initialize())
+    {
+        TERMINAL_LOG_ERROR("NetworkTask", "Failed to initialize weather station API");
+        DEBUG_BRKPT();
+    }
     TERMINAL_LOG_INFO("NetworkTask", "Network interface initialized successfully");
 }
 
@@ -72,7 +76,7 @@ void NetworkTask::runCyclic()
             waitForNetworkLinkUp();
         }
 
-        AppCom::TemperaturePayload Payload = {};
+        AppCom::DS18B20Payload Payload = {};
         bool Received = _ItcManager.waitForMessage(
             AppCom::ItcChannel::Temperature, &Payload, sizeof(Payload), NETWORK_MESSAGE_WAIT_TICKS);
 
@@ -86,7 +90,7 @@ void NetworkTask::runCyclic()
 
 /********************************* PRIVATE ***********************************/
 
-void NetworkTask::networkInit()
+void NetworkTask::networkStackInit()
 {
     /* start LwIP tcpip thread for RTOS mode */
     tcpip_init(nullptr, nullptr);
@@ -123,14 +127,14 @@ bool NetworkTask::isNetworkLinkUp()
     return netif_is_link_up(&_NetworkInterface);
 }
 
-void NetworkTask::processTemperaturePayload(const AppCom::TemperaturePayload &Payload)
+void NetworkTask::processTemperaturePayload(const AppCom::DS18B20Payload &Payload)
 {
     HttpResponse Response = {};
     TERMINAL_LOG_INFO("NetworkTask",
                       "Send temperature request, sequence: %lu, timestamp ticks: %lu",
                       static_cast<unsigned long>(Payload.Sequence),
                       static_cast<unsigned long>(Payload.TimestampTicks));
-    if(!_WeatherStationApi.sendTemperatureDS18B20(Payload, Response))
+    if(!_WeatherStationApi.sendDS18B20Payload(Payload, Response))
     {
         TERMINAL_LOG_ERROR("NetworkTask", "Temperature request failed to start");
         return;
