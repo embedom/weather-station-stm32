@@ -148,6 +148,7 @@ HttpStatus HttpClient::processRequest(const HttpRequest &Request, HttpResponse &
     Response = {};
     Response.Status = HttpStatus::OK;
     HttpStatus Status = HttpStatus::OK;
+    size_t ResponseLength = 0U;
 
     TransportStatus ConStatus = _Transport.connect(_HostIp, _Port, HTTP_DEFAULT_TIMEOUT_MS);
     if(ConStatus != TransportStatus::OK)
@@ -156,19 +157,23 @@ HttpStatus HttpClient::processRequest(const HttpRequest &Request, HttpResponse &
     }
 
     Status = sendRequest(Request);
+    if(Status == HttpStatus::OK)
+    {
+        Status = receiveResponse(Response, ResponseLength);
+    }
+
+    ConStatus = _Transport.close();
+    if(ConStatus != TransportStatus::OK && Status == HttpStatus::OK)
+    {
+        Status = HttpStatus::DISCONNECT_ERROR;
+    }
+
     if(Status != HttpStatus::OK)
     {
         return Status;
     }
 
-    size_t ResponseLength = 0U;
-    Status = receiveResponse(ResponseLength);
-    if(Status != HttpStatus::OK)
-    {
-        return Status;
-    }
-
-    if(parseHttpResponse(_ResponseBuffer.data(), ResponseLength, Response) !=
+    if(validateHttpResponseHeaders(_ResponseBuffer.data(), ResponseLength, Response) !=
        HttpHeaderParseStatus::OK)
     {
         return HttpStatus::MALFORMED_RESPONSE;
@@ -201,39 +206,68 @@ HttpStatus HttpClient::sendRequest(const HttpRequest &Request)
     return Status;
 }
 
-HttpStatus HttpClient::receiveResponse(size_t &ResponseLength)
+HttpStatus HttpClient::receiveResponse(HttpResponse &Response, size_t &ResponseLength)
 {
     HttpStatus Status = HttpStatus::OK;
     ResponseLength = 0U;
-    for(;;)
+    bool NeedMoreData = true;
+
+    while(NeedMoreData)
     {
-        if(ResponseLength >= (sizeof(_ResponseBuffer) - 1U))
+        if(ResponseLength >= (_ResponseBuffer.size() - 1U))
         {
             Status = HttpStatus::RESPONSE_TOO_LONG;
             break;
         }
 
         size_t Received = 0;
-        TransportStatus RecStatus =
-            _Transport.receive(reinterpret_cast<uint8_t *>(_ResponseBuffer.data() + ResponseLength),
-                               sizeof(_ResponseBuffer) - 1U - ResponseLength,
-                               Received);
-
-        if(RecStatus != TransportStatus::OK)
+        TransportStatus RecvStatus = _Transport.receive(
+            reinterpret_cast<uint8_t *>(_ResponseBuffer.data() + ResponseLength),
+            _ResponseBuffer.size() - ResponseLength - 1U, /* space for null terminator */
+            Received);
+        if(RecvStatus != TransportStatus::OK)
         {
             Status = HttpStatus::RECEIVE_ERROR;
             break;
         }
-
         if(Received == 0U)
         {
-            _Transport.close() == TransportStatus::OK ? Status = HttpStatus::OK
-                                                      : Status = HttpStatus::INTERNAL_ERROR;
+            Status = HttpStatus::MALFORMED_RESPONSE;
             break;
         }
+
         ResponseLength += Received;
+        ReceiveDataState DataStatus = processReceivedData(ResponseLength, Response);
+        if(DataStatus == ReceiveDataState::DATA_COMPLETE)
+        {
+            NeedMoreData = false;
+        }
+        else if(DataStatus == ReceiveDataState::MALFORMED_RESPONSE)
+        {
+            Status = HttpStatus::MALFORMED_RESPONSE;
+            break;
+        }
     }
     _ResponseBuffer[ResponseLength] = '\0';
+    return Status;
+}
+
+HttpClient::ReceiveDataState HttpClient::processReceivedData(size_t DataLength,
+                                                             HttpResponse &Response)
+{
+    ReceiveDataState Status = ReceiveDataState::NEED_MORE_DATA;
+    const char *HeaderEnd = findHeaderEnd(_ResponseBuffer.data(), DataLength);
+    if(HeaderEnd != nullptr)
+    {
+        HttpHeaderParseStatus ParseStatus =
+            checkResponseBodyComplete(Response, *HeaderEnd, DataLength);
+        if(ParseStatus != HttpHeaderParseStatus::DATA_NOT_RECEIVED)
+        {
+            ParseStatus == HttpHeaderParseStatus::OK
+                ? Status = ReceiveDataState::DATA_COMPLETE
+                : Status = ReceiveDataState::MALFORMED_RESPONSE;
+        }
+    }
     return Status;
 }
 

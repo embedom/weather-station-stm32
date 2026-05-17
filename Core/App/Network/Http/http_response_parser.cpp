@@ -28,12 +28,12 @@ constexpr size_t HTTP_HEADER_END_LEN = 4U;       /* "\r\n\r\n" */
 constexpr size_t HTTP_STATUS_CODE_LEN = 3U;
 constexpr int HTTP_DECIMAL_BASE = 10;
 
-constexpr const char *HTTP_VERSION = "HTTP/1.1 ";
-constexpr const char *HTTP_HEADER_END_SEPARATOR = "\r\n\r\n";
-constexpr const char *HTTP_LINE_END_SEPARATOR = "\r\n";
-constexpr const char *HTTP_CONTENT_LENGTH_HEADER = "Content-Length";
-constexpr const char *HTTP_CONTENT_TYPE_HEADER = "Content-Type";
-constexpr const char *HTTP_JSON_CONTENT_TYPE = "application/json";
+constexpr char HTTP_VERSION[] = "HTTP/1.1 ";
+constexpr char HTTP_HEADER_END_SEPARATOR[] = "\r\n\r\n";
+constexpr char HTTP_LINE_END_SEPARATOR[] = "\r\n";
+constexpr char HTTP_CONTENT_LENGTH_HEADER[] = "Content-Length";
+constexpr char HTTP_CONTENT_TYPE_HEADER[] = "Content-Type";
+constexpr char HTTP_JSON_CONTENT_TYPE[] = "application/json";
 
 /****************************** STATIC HELPERS *******************************/
 
@@ -51,9 +51,69 @@ static bool isJsonContentType(const char *ValueStart, const char *ValueEnd);
 
 /********************************** PUBLIC ***********************************/
 
-HttpClient::HttpHeaderParseStatus HttpClient::parseHttpResponse(const char *ResponseBuffer,
-                                                                size_t ResponseLength,
-                                                                HttpResponse &Response)
+const char *HttpClient::findHeaderEnd(const char *ResponseBuffer, size_t ResponseLength)
+{
+    return findSeparatorInRange(ResponseBuffer,
+                                ResponseBuffer + ResponseLength,
+                                HTTP_HEADER_END_SEPARATOR,
+                                strlen(HTTP_HEADER_END_SEPARATOR));
+}
+
+HttpClient::HttpHeaderParseStatus HttpClient::checkResponseBodyComplete(HttpResponse &Response,
+                                                                        size_t HeaderEndOffset,
+                                                                        size_t ResponseLength)
+{
+    HttpHeaderParseStatus Status = HttpHeaderParseStatus::OK;
+    const char *HeaderEnd = _ResponseBuffer.data() + HeaderEndOffset;
+    const char *BodyStart = HeaderEnd + HTTP_HEADER_END_LEN;
+    const size_t BodyStartOffset = static_cast<size_t>(BodyStart - _ResponseBuffer.data());
+    const char *ContentLengthStart = nullptr;
+    const char *ContentLengthEnd = nullptr;
+
+    bool HasContentLength = findHeaderValue(_ResponseBuffer.data(),
+                                            HeaderEnd,
+                                            HTTP_CONTENT_LENGTH_HEADER,
+                                            strlen(HTTP_CONTENT_LENGTH_HEADER),
+                                            ContentLengthStart,
+                                            ContentLengthEnd);
+    if(HasContentLength)
+    {
+        size_t ExpectedContentLength = 0U;
+        size_t ReceivedBodyLength = ResponseLength - BodyStartOffset;
+        bool ContentLengthValid =
+            parseContentLength(ContentLengthStart, ContentLengthEnd, ExpectedContentLength);
+        if(!ContentLengthValid)
+        {
+            Status = HttpHeaderParseStatus::INVALID_CONTENT_LENGTH;
+        }
+        else if(ReceivedBodyLength > ExpectedContentLength)
+        {
+            Status = HttpHeaderParseStatus::INVALID_BODY_LENGTH;
+        }
+        else if(ReceivedBodyLength < ExpectedContentLength)
+        {
+            Status = HttpHeaderParseStatus::DATA_NOT_RECEIVED;
+        }
+        else
+        {
+            Response.Body = BodyStart;
+            Response.BodyLength = ExpectedContentLength;
+            Status = HttpHeaderParseStatus::OK;
+        }
+    }
+    else
+    {
+        /* No Content-Length header */
+        Response.Body = nullptr;
+        Response.BodyLength = 0U;
+        Status = HttpHeaderParseStatus::OK;
+    }
+    return Status;
+}
+
+HttpClient::HttpHeaderParseStatus
+HttpClient::validateHttpResponseHeaders(const char *ResponseBuffer, size_t ResponseLength,
+                                        HttpResponse &Response)
 {
     if((ResponseLength < HTTP_STATUS_LINE_MIN_LEN) ||
        (memcmp(ResponseBuffer, HTTP_VERSION, HTTP_VERSION_LEN) != 0))
@@ -89,27 +149,7 @@ HttpClient::HttpHeaderParseStatus HttpClient::parseHttpResponse(const char *Resp
     }
     const char *HeadersStart = StatusLineEnd + strlen(HTTP_LINE_END_SEPARATOR);
 
-    const char *ContentLengthStart = nullptr;
-    const char *ContentLengthEnd = nullptr;
-    size_t ContentLength = 0U;
-    bool HasContentLength = findHeaderValue(HeadersStart,
-                                            HeaderEnd,
-                                            HTTP_CONTENT_LENGTH_HEADER,
-                                            strlen(HTTP_CONTENT_LENGTH_HEADER),
-                                            ContentLengthStart,
-                                            ContentLengthEnd);
-    bool ContentLengthValid =
-        HasContentLength && parseContentLength(ContentLengthStart, ContentLengthEnd, ContentLength);
-
-    const char *Body = HeaderEnd + HTTP_HEADER_END_LEN;
-    const size_t BodyOffset = static_cast<size_t>(Body - ResponseBuffer);
-    const size_t BodyLength = ResponseLength - BodyOffset;
-    if(!ContentLengthValid || (ContentLength != BodyLength))
-    {
-        return HttpHeaderParseStatus::INVALID_CONTENT_LENGTH;
-    }
-
-    if(BodyLength > 0U)
+    if(Response.BodyLength > 0U)
     {
         const char *ContentTypeStart = nullptr;
         const char *ContentTypeEnd = nullptr;
@@ -132,12 +172,10 @@ HttpClient::HttpHeaderParseStatus HttpClient::parseHttpResponse(const char *Resp
                        "Status code: %d, Header length: %u, Body length: %u\n",
                        StatusCode,
                        static_cast<size_t>(HeaderEnd - ResponseBuffer),
-                       static_cast<size_t>(BodyLength));
+                       static_cast<size_t>(Response.BodyLength));
 #endif
     Response.Status = HttpStatus::OK;
     Response.StatusCode = StatusCode;
-    Response.Body = (BodyLength > 0U) ? Body : nullptr;
-    Response.BodyLength = BodyLength;
     return HttpHeaderParseStatus::OK;
 }
 
