@@ -12,6 +12,34 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
+find_package(Git QUIET)
+
+if(GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
+    execute_process(
+        COMMAND "${GIT_EXECUTABLE}" config --get core.hooksPath
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        OUTPUT_VARIABLE CURRENT_GIT_HOOKS_PATH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+
+    if(NOT CURRENT_GIT_HOOKS_PATH STREQUAL ".githooks")
+        execute_process(
+            COMMAND "${GIT_EXECUTABLE}" config core.hooksPath .githooks
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            RESULT_VARIABLE GIT_HOOKS_RESULT
+        )
+        if(GIT_HOOKS_RESULT EQUAL 0)
+            message(STATUS "Git hooks activated: core.hooksPath=.githooks")
+        else()
+            message(WARNING "Failed to activate Git hooks")
+        endif()
+    else()
+        message(STATUS "Git hooks already activated: /${CURRENT_GIT_HOOKS_PATH}")
+    endif()
+
+endif()
+
 # Include Ninja build system bootstrapping
 include("CMake/dep-tools-ninja.cmake")
 
