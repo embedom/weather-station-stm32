@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+
+COMMIT_MSG_FILE="$1"
+MAX_TITLE_LENGTH=50
+MAX_BODY_LINE_LENGTH=72
+
+ALLOWED_TITLE_TYPES="Fix|Feature|Refactor|Test|Build|CI|Docs|Style|Chore|Perf|Revert"
+
+# Ignore comments from commit template, but validate real lines
+LINES=()
+while IFS= read -r LINE || [[ -n "$LINE" ]]; do
+  if [[ ! "$LINE" =~ ^[[:space:]]*# ]]; then
+    LINES+=("$LINE")
+  fi
+done < "$COMMIT_MSG_FILE"
+
+TITLE="${LINES[0]:-}"
+SECOND_LINE="${LINES[1]:-}"
+
+# Skip validation if title starts with -vskip
+if [[ "$TITLE" == -vskip* ]]; then
+  exit 0
+fi
+
+# 1. Title is required
+if [[ -z "$TITLE" ]]; then
+  cat <<EOF
+ERROR: Commit title is missing.
+
+Add title in the first line, for example:
+
+"Fix: Repair hal init validation".
+EOF
+  exit 1
+fi
+
+# 2. Title format check
+if [[ -n "$TITLE" && ! "$TITLE" =~ ^($ALLOWED_TITLE_TYPES):[[:space:]].+ ]]; then
+  cat <<EOF
+ERROR: Commit title has incompatible format with used title types.
+
+Use one of: [Fix, Feature, Refactor, Test, Build, CI, Docs, Style, Chore, Perf, Revert].
+
+Example:
+---
+Fix: Repair hal init validation
+
+- Body starts here. Each body line should be
+wrapped at 72 characters or less.
+---
+
+[Your message:] "$TITLE"
+EOF
+  exit 1
+fi
+
+# 3. Title max length
+if [[ ${#TITLE} -gt $MAX_TITLE_LENGTH ]]; then
+  cat <<EOF
+ERROR: Commit title too long. Has ${#TITLE} characters - maximum allowed: ${MAX_TITLE_LENGTH}.
+
+Shorten the first line to ${MAX_TITLE_LENGTH} characters or less.
+
+[Line 1:] "$TITLE"
+EOF
+  exit 1
+fi
+
+# 4. Second line must be empty
+if [[ ${#LINES[@]} -ge 2 && -n "$SECOND_LINE" ]]; then
+  cat <<EOF
+ERROR: Second line must be empty.
+
+Add an empty line between title and body.
+
+[Line 2:] "$SECOND_LINE"
+EOF
+  exit 1
+fi
+
+# 5. Body must start from line 3 if body exists
+# 6. Each body line max 72 characters
+for i in "${!LINES[@]}"; do
+  LINE_NUMBER=$((i + 1))
+  LINE="${LINES[$i]}"
+
+  if [[ $LINE_NUMBER -ge 3 && ${#LINE} -gt $MAX_BODY_LINE_LENGTH ]]; then
+    cat <<EOF
+ERROR: Body line [$LINE_NUMBER] too long. Has ${#LINE} characters - maximum allowed: ${MAX_BODY_LINE_LENGTH}.
+
+Wrap this body line so it has ${MAX_BODY_LINE_LENGTH} characters or less.
+
+[Line $LINE_NUMBER:] "$LINE"
+EOF
+    exit 1
+  fi
+done
+
+exit 0
