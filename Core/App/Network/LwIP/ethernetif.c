@@ -14,6 +14,7 @@
 #include <string.h>
 #include "misc_compiler.h"
 #include "hardware_config.h"
+#include "stm32f7xx_it.h"
 #include "eth_phy_io.h"
 
 #include "lwip/opt.h"
