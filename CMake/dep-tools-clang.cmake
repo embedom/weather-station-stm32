@@ -168,17 +168,6 @@ if(ENABLE_CLANG_FORMAT AND EXISTS "${CLANG_FORMAT_EXE}")
         ${CMAKE_SOURCE_DIR}/Core/*.c    ${CMAKE_SOURCE_DIR}/Core/*.h
         ${CMAKE_SOURCE_DIR}/Config/*.h  ${CMAKE_SOURCE_DIR}/Config/*.hpp
     )
-    list(REMOVE_ITEM ALL_FORMAT_SOURCES
-        ${CMAKE_SOURCE_DIR}/Config/SEGGER_RTT_Conf.h
-        ${CMAKE_SOURCE_DIR}/Config/stm32f7xx_hal_conf.h
-        ${CMAKE_SOURCE_DIR}/Core/Hardware/Inc/hardware_config.h
-        ${CMAKE_SOURCE_DIR}/Core/App/Network/LwIP/ethernetif.h
-    )
-    # Exclude all arch LwIP sources
-    list(FILTER ALL_FORMAT_SOURCES EXCLUDE REGEX
-        "^${CMAKE_SOURCE_DIR}/Core/App/Network/LwIP/arch/")
-    list(FILTER ALL_FORMAT_SOURCES EXCLUDE REGEX
-        "^${CMAKE_SOURCE_DIR}/Core/App/Network/LwIP/BSP/")
     
     if(CLANG_FORMAT_ON_BUILD)
         # Add clang-format as a pre-build step for the main target

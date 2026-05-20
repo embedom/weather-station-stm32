@@ -3,7 +3,7 @@
     "cmake.configureArgs": [
         "-DCMAKE_TOOLCHAIN_FILE=${workspaceFolder}/CMake/dep-arm-none-eabi-gcc.cmake"
     ],
-    "editor.formatOnSave": false,
+    "editor.formatOnSave": true,
     "[c]": {
         "editor.defaultFormatter": "ms-vscode.cpptools"
     },

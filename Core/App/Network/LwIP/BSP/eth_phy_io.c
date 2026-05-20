@@ -37,8 +37,9 @@ ETH_DMADescTypeDef DMARxDscrTab[ETH_RX_DESC_CNT] __attribute__((section(".RxDecr
 ETH_DMADescTypeDef DMATxDscrTab[ETH_TX_DESC_CNT] __attribute__((section(".TxDecripSection")));
 
 static lan8742_Object_t LAN8742;
-static lan8742_IOCtx_t LAN8742_IOCtx = {ETH_PHY_IO_Init, ETH_PHY_IO_DeInit, ETH_PHY_IO_WriteReg,
-                                        ETH_PHY_IO_ReadReg, ETH_PHY_IO_GetTick};
+static lan8742_IOCtx_t LAN8742_IOCtx = {
+    ETH_PHY_IO_Init, ETH_PHY_IO_DeInit, ETH_PHY_IO_WriteReg, ETH_PHY_IO_ReadReg, ETH_PHY_IO_GetTick
+};
 
 /********************************* FUNCTIONS *********************************/
 

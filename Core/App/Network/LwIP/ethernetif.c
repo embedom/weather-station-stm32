@@ -205,7 +205,8 @@ static void low_level_init(struct netif *NetIf)
         {
             Error_Handler();
         }
-        /* monitor link changes in the background (detects link up when starting with the cable disconnected) */
+        /* monitor link changes in the background (detects link up when starting with the cable
+         * disconnected) */
         xReturned = xTaskCreate(ethernet_link_thread,
                                 "EthIfLink",
                                 INTERFACE_THREAD_STACK_SIZE,
@@ -290,7 +291,7 @@ static err_t low_level_output(struct netif *NetIf, struct pbuf *p)
  * @param NetIf the lwip network interface structure for this ethernetif
  * @return a pbuf filled with the received packet (including MAC header)
  *         NULL on memory error
-  */
+ */
 static struct pbuf *low_level_input(struct netif *NetIf)
 {
     (void)NetIf;
@@ -304,17 +305,17 @@ static struct pbuf *low_level_input(struct netif *NetIf)
 }
 
 /**
-  * @brief  Custom Rx pbuf free callback
-  * @param  Buffer: pbuf to be freed
-  * @retval None
-  */
+ * @brief  Custom Rx pbuf free callback
+ * @param  Buffer: pbuf to be freed
+ * @retval None
+ */
 static void pbuf_free_custom(struct pbuf *Buffer)
 {
     struct pbuf_custom *CustomBuf = (struct pbuf_custom *)Buffer;
     LWIP_MEMPOOL_FREE(RX_POOL, CustomBuf);
 
     /* If the Rx Buffer Pool was exhausted, signal the ethernetif_input task to
-    * call HAL_ETH_GetRxDataBuffer to rebuild the Rx descriptors. */
+     * call HAL_ETH_GetRxDataBuffer to rebuild the Rx descriptors. */
     if(RxAllocStatus == RX_ALLOC_ERROR)
     {
         RxAllocStatus = RX_ALLOC_OK;
@@ -325,10 +326,10 @@ static void pbuf_free_custom(struct pbuf *Buffer)
 /********************************** THREADS **********************************/
 
 /**
-  * @brief  Check the ETH link state then update ETH driver and netif link accordingly.
-  * @param Argument the lwip network interface structure for this ethernetif
-  * @retval None
-  */
+ * @brief  Check the ETH link state then update ETH driver and netif link accordingly.
+ * @param Argument the lwip network interface structure for this ethernetif
+ * @retval None
+ */
 static void ethernet_link_thread(void *Argument)
 {
     struct netif *NetIf = (struct netif *)Argument;
@@ -434,8 +435,9 @@ void HAL_ETH_RxLinkCallback(void **pStart, void **pEnd, uint8_t *buff, uint16_t 
     }
     *ppEnd = p;
 
-    /* Update the total length of all the buffers of the chain. Each pbuf in the chain should 
-        have its tot_len set to its own length, plus the length of all the following pbufs in the chain. */
+    /* Update the total length of all the buffers of the chain. Each pbuf in the chain should
+        have its tot_len set to its own length, plus the length of all the following pbufs in the
+       chain. */
     for(p = *ppStart; p != NULL; p = p->next)
     {
         p->tot_len += Length;
@@ -456,8 +458,8 @@ void HAL_ETH_RxAllocateCallback(uint8_t **buff)
         *buff = (uint8_t *)p + offsetof(RxBuff_t, buff);
         p->custom_free_function = pbuf_free_custom;
         /* Initialize the struct pbuf.
-        * This must be performed whenever a buffer's allocated because it may be
-        * changed by lwIP or the app, e.g., pbuf_free decrements ref. */
+         * This must be performed whenever a buffer's allocated because it may be
+         * changed by lwIP or the app, e.g., pbuf_free decrements ref. */
         pbuf_alloced_custom(PBUF_RAW, 0, PBUF_REF, p, *buff, ETH_RX_BUF_SIZE);
     }
     else
