@@ -50,7 +50,6 @@ HW_Status_t HW_DS18B20_TimerInit(TIM_HandleTypeDef *TimerHandle);
 HW_Status_t HW_systemClockConfig(void);
 HW_Status_t HW_disableCache(void);
 HW_Status_t HW_MpuConfig(void);
-void Error_Handler(void);
 
 #ifdef __cplusplus
 }

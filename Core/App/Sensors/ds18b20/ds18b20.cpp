@@ -11,8 +11,8 @@
 
 #include <cstdint>
 #include "misc_compiler.h"
-#include "stm32f7xx_hal.h"
 #include "hardware_config.h"
+#include "stm32f7xx_it.h"
 #include "ds18b20.hpp"
 #include "terminal.h"
 

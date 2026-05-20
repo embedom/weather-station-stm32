@@ -106,11 +106,14 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 set(CORE_SOURCES
     ${CMAKE_SOURCE_DIR}/Core/Startup/startup_stm32f746xx.s
     ${CMAKE_SOURCE_DIR}/Core/main.cpp
-    ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/hardware_config.c
     ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/system_stm32f7xx.c
+    ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/syscalls.c
     ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/stm32f7xx_it.c
     ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/hal_tick_tim.c
-    ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/syscalls.c
+    ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/hardware_config.c
+)
+
+set(TERMINAL_SOURCES
     ${CMAKE_SOURCE_DIR}/Core/Terminal/terminal.c
     ${CMAKE_SOURCE_DIR}/SeggerRTT/SEGGER_RTT.c
     ${CMAKE_SOURCE_DIR}/SeggerRTT/SEGGER_RTT_printf.c
@@ -144,6 +147,7 @@ set(APP_SOURCES
 ############################# TARGET ALL SOURCES ##############################
 target_sources(${PROJECT_NAME} PRIVATE
     ${CORE_SOURCES}
+    ${TERMINAL_SOURCES}
     ${HAL_SOURCES}
     ${FREERTOS_SOURCES}
     ${LWIP_SRCS}
