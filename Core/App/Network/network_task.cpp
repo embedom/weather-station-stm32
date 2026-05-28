@@ -30,7 +30,7 @@ namespace Network
 
 /******************************** CONSTEXPR **********************************/
 
-constexpr TickType_t NETWORK_MESSAGE_WAIT_TICKS = pdMS_TO_TICKS(500U);
+constexpr TickType_t NETWORK_MESSAGE_WAIT_TICKS = pdMS_TO_TICKS(50U);
 constexpr TickType_t NETWORK_LINK_UP_WAIT_TIMEOUT_TICKS = pdMS_TO_TICKS(5000U);
 constexpr TickType_t NETWORK_CYCLE_TASK_TICKS = pdMS_TO_TICKS(NETWORK_TASK_CYCLE_TIME_MS);
 
@@ -75,15 +75,11 @@ void NetworkTask::runCyclic()
             TERMINAL_LOG_INFO("NetworkTask", "Network link down, waiting for cable");
             waitForNetworkLinkUp();
         }
+        /* Send outdoor sensor measurements (DS18B20 - temp) */
+        processOutdoorSensPayload();
+        /* Send indoor sensor measurements (BME280 - Temp, Hum, Pres) */
+        processIndoorSensPayload();
 
-        AppCom::DS18B20Payload Payload = {};
-        bool Received = _ItcManager.waitForMessage(
-            AppCom::ItcChannel::Temperature, &Payload, sizeof(Payload), NETWORK_MESSAGE_WAIT_TICKS);
-
-        if(Received)
-        {
-            processTemperaturePayload(Payload);
-        }
         vTaskDelayUntil(&LastTimeWake, NETWORK_CYCLE_TASK_TICKS);
     }
 }
@@ -127,32 +123,47 @@ bool NetworkTask::isNetworkLinkUp()
     return netif_is_link_up(&_NetworkInterface);
 }
 
-void NetworkTask::processTemperaturePayload(const AppCom::DS18B20Payload &Payload)
+void NetworkTask::processOutdoorSensPayload()
 {
-    HttpResponse Response = {};
-    TERMINAL_LOG_INFO("NetworkTask",
-                      "Send temperature request, sequence: %lu, timestamp ticks: %lu",
-                      static_cast<unsigned long>(Payload.Sequence),
-                      static_cast<unsigned long>(Payload.TimestampTicks));
-    if(!_WeatherStationApi.sendDS18B20Payload(Payload, Response))
+    AppCom::DS18B20Payload Payload = {};
+    bool Received = _ItcManager.waitForMessage(
+        AppCom::ItcChannel::DS18B20, &Payload, sizeof(Payload), NETWORK_MESSAGE_WAIT_TICKS);
+    if(Received)
     {
-        TERMINAL_LOG_ERROR("NetworkTask", "Temperature request failed to start");
-        return;
+        HttpResponse Response = {};
+        if(!_WeatherStationApi.sendOutdoorSensPayload(Payload, Response))
+        {
+            TERMINAL_LOG_ERROR("NetworkTask", "Outdoor request failed to start");
+            return;
+        }
+        handleHttpResponse(Response);
     }
+}
 
-    handleHttpResponse(Response);
+void NetworkTask::processIndoorSensPayload()
+{
+    AppCom::Bme280Payload Payload = {};
+    bool Received = _ItcManager.waitForMessage(
+        AppCom::ItcChannel::BME280, &Payload, sizeof(Payload), NETWORK_MESSAGE_WAIT_TICKS);
+    if(Received)
+    {
+        HttpResponse Response = {};
+        if(!_WeatherStationApi.sendIndoorSensPayload(Payload, Response))
+        {
+            TERMINAL_LOG_ERROR("NetworkTask", "Indoor request failed to start");
+            return;
+        }
+        handleHttpResponse(Response);
+    }
 }
 
 void NetworkTask::handleHttpResponse(const HttpResponse &Response)
 {
     if(Response.Status != HttpStatus::OK)
     {
-        TERMINAL_LOG_ERROR("NetworkTask",
-                           "HTTP request failed, status: %u",
-                           static_cast<unsigned>(Response.Status));
+        TERMINAL_LOG_ERROR("NetworkTask", "HTTP request failed, status: %u", Response.Status);
         return;
     }
-
     TERMINAL_LOG_INFO("NetworkTask", "HTTP response status code: %d", Response.StatusCode);
 }
 

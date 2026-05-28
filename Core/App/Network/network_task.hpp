@@ -50,7 +50,8 @@ class NetworkTask : public GenericTask
     void networkStackInit();
     void waitForNetworkLinkUp();
     bool isNetworkLinkUp();
-    void processTemperaturePayload(const AppCom::DS18B20Payload &Payload);
+    void processOutdoorSensPayload();
+    void processIndoorSensPayload();
     void handleHttpResponse(const HttpResponse &Response);
 
     StackType_t _TaskStack[NETWORK_STACK_SIZE_WORDS];

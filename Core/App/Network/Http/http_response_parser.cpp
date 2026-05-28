@@ -167,9 +167,9 @@ HttpClient::validateHttpResponseHeaders(const char *ResponseBuffer, size_t Respo
     }
 #ifdef HTTP_RESPONSE_PARSER_DEBUG
     /* Debug output of the parsed response */
-    TERMINAL_LOG_DEBUG("HttpClient", "Parsed HTTP response:\n");
+    TERMINAL_LOG_DEBUG("HttpClient", "Parsed HTTP response:");
     TERMINAL_LOG_DEBUG("HttpClient",
-                       "Status code: %d, Header length: %u, Body length: %u\n",
+                       "Status code: %d, Header length: %u, Body length: %u",
                        StatusCode,
                        static_cast<size_t>(HeaderEnd - ResponseBuffer),
                        static_cast<size_t>(Response.BodyLength));
