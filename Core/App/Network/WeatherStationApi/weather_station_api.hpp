@@ -25,7 +25,8 @@ class WeatherStationApi
     WeatherStationApi(HttpClient &HttpClient) : _HttpClient(HttpClient) {};
 
     bool initialize();
-    bool sendDS18B20Payload(const AppCom::DS18B20Payload &Payload, HttpResponse &Response);
+    bool sendOutdoorSensPayload(const AppCom::DS18B20Payload &Payload, HttpResponse &Response);
+    bool sendIndoorSensPayload(const AppCom::Bme280Payload &Payload, HttpResponse &Response);
 
     private:
     void processResponseBody(const HttpResponse &Response);

@@ -22,7 +22,11 @@ namespace Network
 
 constexpr size_t TEMPERATURE_REQUEST_BODY_SIZE = 256U;
 constexpr char DS18B20_PAYLOAD_FORMAT[] =
-    "{\"sequence\":%lu,\"timestamp_ticks\":%lu,\"temperature_centi_c\":";
+    "{\"sequence\": %lu, \"timestamp_ticks\": %lu, \"temperature_centi_c\": ";
+
+constexpr char BME280_PAYLOAD_FORMAT[] =
+    "{\"sequence\": %lu, \"timestamp_ticks\": %lu, \"measurements\": [\"temp_centi_c\": %d, "
+    "\"humidity\": %lu, \"pressure\": %lu]}";
 
 /********************************** PUBLIC ***********************************/
 
@@ -39,8 +43,8 @@ bool WeatherStationApi::initialize()
     return true;
 }
 
-bool WeatherStationApi::sendDS18B20Payload(const AppCom::DS18B20Payload &Payload,
-                                           HttpResponse &Response)
+bool WeatherStationApi::sendOutdoorSensPayload(const AppCom::DS18B20Payload &Payload,
+                                               HttpResponse &Response)
 {
     char RequestPath[HTTP_MAX_PATH_LEN] = {};
     char RequestBody[TEMPERATURE_REQUEST_BODY_SIZE] = {};
@@ -96,6 +100,42 @@ bool WeatherStationApi::sendDS18B20Payload(const AppCom::DS18B20Payload &Payload
     }
 
     size_t TotalBodyLen = Offset + static_cast<size_t>(Written);
+    HttpStatus PostResult =
+        _HttpClient.postRequest(RequestPath, RequestBody, TotalBodyLen, Response);
+    if(PostResult == HttpStatus::OK)
+    {
+        processResponseBody(Response);
+    }
+    return true;
+}
+
+bool WeatherStationApi::sendIndoorSensPayload(const AppCom::Bme280Payload &Payload,
+                                              HttpResponse &Response)
+{
+    char RequestPath[HTTP_MAX_PATH_LEN] = {};
+    char RequestBody[TEMPERATURE_REQUEST_BODY_SIZE] = {};
+
+    int Written = snprintf(
+        RequestPath, sizeof(RequestPath), "%s%s", SENSORS_BASE_PATH, BME280_MEASUR_ENDPOINT);
+    if((Written <= 0) || (static_cast<size_t>(Written) >= sizeof(RequestPath)))
+    {
+        return false;
+    }
+
+    Written = snprintf(RequestBody,
+                       sizeof(RequestBody),
+                       BME280_PAYLOAD_FORMAT,
+                       static_cast<unsigned long>(Payload.Sequence),
+                       static_cast<unsigned long>(Payload.TimestampTicks),
+                       static_cast<int>(Payload.Temperature),
+                       static_cast<unsigned long>(Payload.Humidity),
+                       static_cast<unsigned long>(Payload.Pressure));
+    if((Written <= 0) || (static_cast<size_t>(Written) >= sizeof(RequestBody)))
+    {
+        return false;
+    }
+
+    size_t TotalBodyLen = static_cast<size_t>(Written); // Only for second sprintf
     HttpStatus PostResult =
         _HttpClient.postRequest(RequestPath, RequestBody, TotalBodyLen, Response);
     if(PostResult == HttpStatus::OK)
