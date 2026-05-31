@@ -7,3 +7,6 @@
 [submodule "Drivers/STM32F7xx_HAL"]
 	path = Drivers/STM32F7xx_HAL
 	url = https://github.com/STMicroelectronics/stm32f7xx-hal-driver.git
+[submodule "Terminal"]
+	path = Terminal
+	url = https://github.com/embedom/terminal.git
