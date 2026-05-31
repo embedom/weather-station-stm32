@@ -156,7 +156,7 @@ if(ENABLE_CLANG_TIDY)
     file(GLOB_RECURSE _SKIP_SOURCES
         ${CMAKE_SOURCE_DIR}/Drivers/*.c    ${CMAKE_SOURCE_DIR}/Drivers/*.cpp
         ${CMAKE_SOURCE_DIR}/Middlewares/*.c ${CMAKE_SOURCE_DIR}/Middlewares/*.cpp
-        ${CMAKE_SOURCE_DIR}/SeggerRTT/*.c  ${CMAKE_SOURCE_DIR}/SeggerRTT/*.cpp
+        ${CMAKE_SOURCE_DIR}/Terminal/SeggerRTT/*.c  ${CMAKE_SOURCE_DIR}/Terminal/SeggerRTT/*.cpp
     )
     set_source_files_properties(${_SKIP_SOURCES} PROPERTIES SKIP_LINTING ON)
 endif()

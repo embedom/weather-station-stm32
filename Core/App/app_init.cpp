@@ -38,6 +38,11 @@ static uint8_t ITC_BME280_STORAGE[sizeof(AppCom::Bme280Payload)] = { 0U };
 
 /********************************* FUNCTIONS *********************************/
 
+static uint32_t appTerminalTimeMs(void)
+{
+    return static_cast<uint32_t>((xTaskGetTickCount() * portTICK_PERIOD_MS));
+}
+
 AppStatus platformInit(void)
 {
     if(HW_MpuConfig() != HW_STATUS_OK)
@@ -67,7 +72,8 @@ AppStatus initialize(void)
         DEBUG_BRKPT();
         return AppStatus::ERROR;
     }
-    SEGGER_RTT_Init();
+    /* App terminal init with get_time_ms for FreeRTOS */
+    terminal_init(appTerminalTimeMs);
 
     const AppCom::ChannelConfig ItcChannelsConfig[ITC_CHANNEL_COUNT] = {
         { .Channel = AppCom::ItcChannel::DS18B20,

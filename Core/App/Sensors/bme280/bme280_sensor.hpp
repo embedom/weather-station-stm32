@@ -92,7 +92,7 @@ class Bme280Sensor
     uint8_t _CalibRxBuf[SPI_CALIB1_FRAME_LEN] = {};
 
     /* Compensated measurement results */
-    int32_t _Temperature = 0;     // [°C]
+    int32_t _Temperature = 0;      // [°C]
     uint32_t _Humidity = 0U;       // [%RH]
     uint32_t _Pressure = 0U;       // [hPa] sea-level adjusted
     uint32_t _AltitudeMeters = 0U; // [m] above sea level for pressure conversion

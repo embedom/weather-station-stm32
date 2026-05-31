@@ -81,15 +81,16 @@ include("CMake/dep-drivers-stm32.cmake")
 # Include middleware dependencies (FreeRTOS, lwIP)
 include("CMake/dep-middleware.cmake")
 
+# Include external terminal library
+add_subdirectory(Terminal EXCLUDE_FROM_ALL)
+
 ################################ TARGET DIRS ##################################
 set(APP_PATH ${CMAKE_SOURCE_DIR}/Core/App)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     ${CMAKE_SOURCE_DIR}/Core/App
     ${CMAKE_SOURCE_DIR}/Core/Hardware/Inc
-    ${CMAKE_SOURCE_DIR}/Core/Terminal
     ${CMAKE_SOURCE_DIR}/Config
-    ${CMAKE_SOURCE_DIR}/SeggerRTT
     ${APP_PATH}/Tasks
     ${APP_PATH}/InterTaskCom
     ${APP_PATH}/Network
@@ -112,12 +113,6 @@ set(CORE_SOURCES
     ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/stm32f7xx_it.c
     ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/hal_tick_tim.c
     ${CMAKE_SOURCE_DIR}/Core/Hardware/Src/hardware_config.c
-)
-
-set(TERMINAL_SOURCES
-    ${CMAKE_SOURCE_DIR}/Core/Terminal/terminal.c
-    ${CMAKE_SOURCE_DIR}/SeggerRTT/SEGGER_RTT.c
-    ${CMAKE_SOURCE_DIR}/SeggerRTT/SEGGER_RTT_printf.c
 )
 
 set(NETWORK_SOURCES
@@ -150,11 +145,14 @@ set(APP_SOURCES
 ############################# TARGET ALL SOURCES ##############################
 target_sources(${PROJECT_NAME} PRIVATE
     ${CORE_SOURCES}
-    ${TERMINAL_SOURCES}
     ${HAL_SOURCES}
     ${FREERTOS_SOURCES}
     ${LWIP_SRCS}
     ${APP_SOURCES}
+)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    terminal
 )
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
