@@ -5,9 +5,7 @@ Firmware for a **STM32F746NG** weather station. The application runs on
 between tasks through static FreeRTOS queues, and communicates with an HTTP server over Ethernet
 and **LwIP**.
 
-At the moment, DS18B20 temperature measurements are sent to the backend. BME280 data is read,
-compensated, logged, and published through ITC; the BME280 HTTP endpoint is already defined in the
-code and is intended for the next integration step.
+DS18B20 temperature and BME280 (temperature, pressure, humidity) measurements are sent to the backend endpoints.
 
 ## Key Features
 
@@ -18,20 +16,20 @@ code and is intended for the next integration step.
 - RMII Ethernet with LAN8742 PHY, LwIP in RTOS mode.
 - Simple blocking HTTP/1.1 client built on a TCP transport layer.
 - Inter-task communication through static FreeRTOS queues.
-- Diagnostics through SEGGER RTT.
+- Diagnostics through custom terminal.
 - CMake + Ninja + arm-none-eabi-gcc, with automatic tool bootstrapping.
 - Clang-format and clang-tidy integrated with CMake.
 
 ## Architecture
 
-The entry point is `Core/main.cpp`. Platform setup, HAL, RTT, ITC queues, and application tasks are
+The entry point is `Core/main.cpp`. Platform setup, HAL, Terminal, ITC queues, and application tasks - 
 initialized from `Core/App/app_init.cpp`.
 
 Main modules:
 
 | Module | Files | Responsibility |
 |---|---|---|
-| Application init | `Core/App/app_init.*` | Platform startup, HAL, RTT, ITC, and FreeRTOS scheduler startup |
+| Application init | `Core/App/app_init.*` | Platform startup, HAL, Terminal, ITC, and FreeRTOS scheduler startup |
 | Sensor task | `Core/App/Sensors/sensors_task.*` | Cyclic DS18B20 and BME280 reads every 2 s |
 | DS18B20 | `Core/App/Sensors/ds18b20/*` | State-machine based One-Wire handling over UART + DMA |
 | BME280 | `Core/App/Sensors/bme280/*` | Configuration, calibration, and measurement compensation over SPI + DMA |
@@ -83,13 +81,11 @@ CMake/                Tool bootstrap and dependency setup
 Config/               FreeRTOS, HAL, RTT, and application configuration
 Core/
   App/                Application logic, sensors, network, ITC
-  Hardware/           HAL configuration, clocks, GPIO, DMA, ETH
-  Startup/            STM32F746 startup code
-  Terminal/           SEGGER RTT logging
+  Hardware/           HAL configuration, clocks, GPIO, DMA, ETH, USART, SPI
 Debug/                OpenOCD configuration
 Drivers/              STM32F7 HAL and CMSIS
 Middlewares/          FreeRTOS Kernel and lwIP
-SeggerRTT/            SEGGER RTT sources
+Terminal/             Custom terminal implementation using SEGGER RTT
 Tools/                Locally bootstrapped tools
 ```
 
@@ -102,11 +98,12 @@ Implemented:
 - BME280 reads through SPI/DMA,
 - ITC queues for DS18B20 and BME280,
 - RMII Ethernet with lwIP,
-- HTTP client and DS18B20, BME280 payload upload to the backend.
+- HTTP client and DS18B20, BME280 payload upload to the backend,
+- Separate repository fetch containing the stand alone terminal implementation.
 
 Planned next steps:
 
 - Extend Weather Station Api according to backend (config fetch, update, user control params),
-- Add an additional transport layer class using Mbed-TLS.
-- Add a separate repository fetch containing the stand alone terminal implementation (SEGGER RTT)
-- Add support for MQTT protocol
+- Add an additional transport layer class using Mbed-TLS,
+- Add support for MQTT protocol,
+- Refactor NetworkTask to support multiple requests/responses with separate NetWorker task.
