@@ -3,13 +3,14 @@ name: Weather Station STM32 CI/CD (CMake)
 on:
   push:
   pull_request:
-    branches: [ "main", "release" ]
+    branches: 
+      - main
 
 permissions:
-  contents: write
+  contents: write # Required for creating releases and uploading artifacts
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref_name }}
   cancel-in-progress: true
 
 env:
@@ -20,7 +21,6 @@ env:
 
 jobs:
   build:
-    if: github.event_name != 'push' || !github.event.created
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -84,8 +84,11 @@ jobs:
 
   release:
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/release'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    environment:
+      name: production
+
     steps:
       - name: Checkout (needed for tagging)
         uses: actions/checkout@v6
